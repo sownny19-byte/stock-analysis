@@ -84,7 +84,7 @@
                     <p class="text-xs text-gray-400 uppercase font-semibold flex items-center gap-1">
                         <i data-lucide="line-chart" class="h-3.5 w-3.5"></i> 加權指數
                     </p>
-                    <p class="text-xl lg:text-2xl font-bold text-white" id="taiexValueDisplay">23,550.00</p>
+                    <p class="text-xl lg:text-2xl font-bold text-white" id="taiexValueDisplay">43,644.40</p>
                 </div>
                 <div class="h-10 w-px bg-gray-700 hidden sm:block"></div>
                 <div>
@@ -152,9 +152,14 @@
                 <div class="w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 custom-scrollbar">
                     <label class="text-xs text-gray-400 uppercase font-semibold mb-1 block">時間框架與顯示模式</label>
                     <div class="flex bg-gray-800 p-1 rounded-lg border border-gray-700 min-w-max gap-1" id="timeframeContainer">
+                        
+                        <!-- 修復: 捨棄 innerHTML 重新繪製，改用隱藏切換機制防崩潰 -->
                         <button id="toggleChartTypeBtn" class="px-3 py-1.5 text-xs font-bold rounded-md text-white bg-gray-700 hover:bg-gray-600 transition-colors flex items-center gap-1 border border-gray-600 shadow-sm mr-2">
-                            <i data-lucide="activity" class="h-3.5 w-3.5"></i> <span>切換為曲線</span>
+                            <i data-lucide="activity" id="chartIconLine" class="h-3.5 w-3.5"></i>
+                            <i data-lucide="bar-chart-2" id="chartIconCandle" class="h-3.5 w-3.5 hidden"></i>
+                            <span id="chartToggleText">切換為曲線</span>
                         </button>
+
                         <div class="w-px h-6 bg-gray-600 self-center mr-1"></div>
                         <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="1D">1日</button>
                         <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="3D">3日</button>
@@ -326,7 +331,7 @@
     </div>
 
     <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-gray-850 border border-brand-accent text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-[100] pointer-events-none">
-        <i data-lucide="check-circle" class="text-brand-accent h-5 w-5"></i>
+        <i data-lucide="check-circle" id="toastIcon" class="text-brand-accent h-5 w-5"></i>
         <span id="toastMsg" class="font-medium">系統訊息</span>
     </div>
 
@@ -355,7 +360,7 @@
         
         let currentStock = "6116"; 
         let currentTimeframe = "6M";
-        let taiexCurrentValue = 43644.40; // 依照長官指示預設更新為最新行情
+        let taiexCurrentValue = 43644.40; 
         let editingTarget = { type: null, index: -1 }; 
         let confirmAction = null;
 
@@ -367,7 +372,7 @@
                 { id: "6116", name: "彩晶", cost: 13.00, price: 13.00, shares: 1000 }
             ],
             watchlist: [
-                { id: "2330", name: "台積電", status: "大盤風向標", alertPrice: 0, price: 865.00, strategy: "大盤風向標，純觀察不操作", type: "accent" },
+                { id: "2330", name: "台積電", status: "大盤風向標", alertPrice: 0, price: 2310.00, strategy: "大盤風向標，純觀察不操作", type: "accent" },
                 { id: "1802", name: "台玻", status: "極度接近", alertPrice: 63.00, price: 62.50, strategy: "跌破執行第一檔哨兵單", type: "danger" },
                 { id: "2369", name: "菱生", status: "安全觀望", alertPrice: 28.00, price: 31.20, strategy: "突破前高，暫不追價", type: "success" },
                 { id: "3481", name: "群創", status: "安全觀望", alertPrice: 23.00, price: 38.50, strategy: "熱錢退燒，拒絕追高", type: "success" },
@@ -469,14 +474,16 @@
 
         const updateCloudStatus = (isOnline, msg) => {
             const el = document.getElementById('cloudStatus');
-            if(isOnline) {
-                el.className = "flex items-center gap-1 text-xs text-brand-accent bg-brand-accent/10 border border-brand-accent/20 px-2 py-1 rounded-md";
-                el.innerHTML = `<i data-lucide="cloud-lightning" class="h-3.5 w-3.5"></i> ${msg}`;
-            } else {
-                el.className = "flex items-center gap-1 text-xs text-brand-warning bg-brand-warning/10 border border-brand-warning/20 px-2 py-1 rounded-md";
-                el.innerHTML = `<i data-lucide="cloud-off" class="h-3.5 w-3.5"></i> ${msg}`;
-            }
-            lucide.createIcons({ root: el });
+            try {
+                if(isOnline) {
+                    el.className = "flex items-center gap-1 text-xs text-brand-accent bg-brand-accent/10 border border-brand-accent/20 px-2 py-1 rounded-md";
+                    el.innerHTML = `<i data-lucide="cloud-lightning" class="h-3.5 w-3.5"></i> ${msg}`;
+                } else {
+                    el.className = "flex items-center gap-1 text-xs text-brand-warning bg-brand-warning/10 border border-brand-warning/20 px-2 py-1 rounded-md";
+                    el.innerHTML = `<i data-lucide="cloud-off" class="h-3.5 w-3.5"></i> ${msg}`;
+                }
+                lucide.createIcons({ root: el });
+            } catch(e) {}
         };
 
         const saveState = async () => {
@@ -494,9 +501,18 @@
 
         const showToast = (msg, iconType = "check-circle", color = "text-brand-accent") => {
             const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastMsg = document.getElementById('toastMsg');
+            
             toast.className = `fixed bottom-5 right-5 transform transition-all duration-300 bg-gray-850 border border-gray-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-[100] pointer-events-none`;
-            toast.innerHTML = `<i data-lucide="${iconType}" class="${color} h-5 w-5"></i><span class="font-medium">${msg}</span>`;
-            lucide.createIcons({ root: toast });
+            toastMsg.innerText = msg;
+            
+            try {
+                toastIcon.setAttribute('data-lucide', iconType);
+                toastIcon.className = `${color} h-5 w-5`;
+                lucide.createIcons({ root: toast });
+            } catch (e) {}
+
             setTimeout(() => toast.classList.remove('translate-y-20', 'opacity-0'), 10);
             setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
         };
@@ -507,7 +523,7 @@
             updateSelectorOptions();
             updateTotalAssets();
             document.getElementById('taiexValueDisplay').innerText = taiexCurrentValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            lucide.createIcons();
+            try { lucide.createIcons(); } catch(e) {}
         };
 
         const updateTotalAssets = () => {
@@ -652,18 +668,15 @@
             
             chart = LightweightCharts.createChart(container, chartProperties);
             
-            // 實例 1: K線
             candleSeries = chart.addCandlestickSeries({
                 upColor: '#ef4444', downColor: '#10b981', borderDownColor: '#10b981', borderUpColor: '#ef4444', wickDownColor: '#10b981', wickUpColor: '#ef4444'
             });
 
-            // 實例 2: 曲線 (預設隱藏)
             lineSeries = chart.addLineSeries({ 
                 color: '#3b82f6', lineWidth: 2, crosshairMarkerVisible: true
             });
             lineSeries.applyOptions({ visible: false });
 
-            // 附屬指標
             volumeSeries = chart.addHistogramSeries({
                 color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: '', scaleMargins: { top: 0.8, bottom: 0 }
             });
@@ -698,7 +711,6 @@
             });
         };
 
-        // K線與曲線資料引擎 (支援超高解析度日內資訊)
         const generateKLineData = (basePrice, volatility, trend, tf) => {
             let candleData = [], lineData = [], volumeData = [];
             let currentPrice = basePrice * (1 - trend);
@@ -712,26 +724,22 @@
             const isIntraday = ['1D', '3D', '5D'].includes(tf);
 
             if (isIntraday) {
-                // 透過搜尋引擎擷取的【分時/小時級別】超高解析度資訊
-                // 1日: 1分鐘線, 3日: 5分鐘線, 5日: 15分鐘線
                 let days = tf === '1D' ? 1 : (tf === '3D' ? 3 : 5);
                 let intervalMin = tf === '1D' ? 1 : (tf === '3D' ? 5 : 15);
-                let pointsPerDay = 270 / intervalMin; // 台股每天交易 270 分鐘 (09:00 - 13:30)
+                let pointsPerDay = 270 / intervalMin;
 
                 let simDates = [];
                 let tempDate = new Date();
                 while (simDates.length < days) {
                     if (tempDate.getDay() !== 0 && tempDate.getDay() !== 6) {
-                        simDates.unshift(new Date(tempDate)); // 避開六日
+                        simDates.unshift(new Date(tempDate)); 
                     }
                     tempDate.setDate(tempDate.getDate() - 1);
                 }
 
-                // 為了讓圖表顯示正確的 UTC+8 本地時間，計算系統時差偏移量
                 let offset = new Date().getTimezoneOffset() * 60; 
 
                 simDates.forEach((simDate, dayIndex) => {
-                    // 設定起點為當日早上 09:00:00 (精確到小時與分鐘)
                     let baseTsSeconds = Math.floor(new Date(simDate.getFullYear(), simDate.getMonth(), simDate.getDate(), 9, 0, 0).getTime() / 1000);
                     let localTsSeconds = baseTsSeconds - offset;
 
@@ -742,14 +750,12 @@
                         let low = Math.min(open, close) * (1 - Math.random() * volatility * 0.1);
                         let volVal = Math.floor(Math.random() * 1500) + 200;
 
-                        // UNIX 時間戳，確保 Lightweight Charts 能以小時/分鐘格式顯示 x 軸
                         createPoint(localTsSeconds + (p * intervalMin * 60), open, high, low, close, volVal, close >= open);
                         currentPrice = close;
                     }
                 });
 
             } else {
-                // 日K/週K 級別資訊
                 let days = 22;
                 if(tf === '1W') days = 5;
                 else if(tf === '1M') days = 22;
@@ -811,6 +817,24 @@
             lineSeries.setData(chartData.line); 
             volumeSeries.setData(chartData.volume);
             
+            // 標示最高與最低價位
+            if (!isCandleMode && currentTimeframe === '1D' && chartData.line.length > 0) {
+                let maxIdx = 0, minIdx = 0;
+                for (let i = 1; i < chartData.line.length; i++) {
+                    if (chartData.line[i].value > chartData.line[maxIdx].value) maxIdx = i;
+                    if (chartData.line[i].value < chartData.line[minIdx].value) minIdx = i;
+                }
+                
+                const markers = [];
+                markers.push({ time: chartData.line[maxIdx].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: '最高 ' + chartData.line[maxIdx].value.toFixed(2) });
+                if (maxIdx !== minIdx) {
+                    markers.push({ time: chartData.line[minIdx].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: '最低 ' + chartData.line[minIdx].value.toFixed(2) });
+                }
+                lineSeries.setMarkers(markers);
+            } else {
+                lineSeries.setMarkers([]); 
+            }
+            
             ma5Series.setData(showMA ? chartData.ma5 : []);
             ma10Series.setData(showMA ? chartData.ma10 : []);
             ma20Series.setData(showMA ? chartData.ma20 : []);
@@ -829,34 +853,61 @@
             }
         };
 
-        // K 線 / 曲線切換器
+        // K 線 / 曲線切換器 - 安全修改不引發 DOM 衝突
         document.getElementById('toggleChartTypeBtn').addEventListener('click', (e) => {
             isCandleMode = !isCandleMode;
+            
+            if (!isCandleMode) {
+                currentTimeframe = '1D';
+                document.querySelectorAll('.tf-btn').forEach(b => {
+                    b.classList.remove('bg-brand-accent', 'text-white', 'shadow-lg');
+                    b.classList.add('text-gray-400');
+                    if(b.dataset.tf === '1D') {
+                        b.classList.remove('text-gray-400');
+                        b.classList.add('bg-brand-accent', 'text-white', 'shadow-lg');
+                    }
+                });
+            }
+            
             candleSeries.applyOptions({ visible: isCandleMode });
             lineSeries.applyOptions({ visible: !isCandleMode });
             
-            const btnSpan = e.currentTarget.querySelector('span');
-            const btnIcon = e.currentTarget.querySelector('i');
+            const iconLine = document.getElementById('chartIconLine');
+            const iconCandle = document.getElementById('chartIconCandle');
+            const toggleText = document.getElementById('chartToggleText');
             
-            if(isCandleMode) {
-                btnSpan.innerText = '切換為曲線';
-                btnIcon.setAttribute('data-lucide', 'activity');
+            if (isCandleMode) {
+                iconLine.classList.remove('hidden');
+                iconCandle.classList.add('hidden');
+                toggleText.innerText = '切換為曲線';
             } else {
-                btnSpan.innerText = '切換為 K線';
-                btnIcon.setAttribute('data-lucide', 'bar-chart-2');
+                iconLine.classList.add('hidden');
+                iconCandle.classList.remove('hidden');
+                toggleText.innerText = '切回 K線';
             }
-            lucide.createIcons();
             
-            chart.timeScale().fitContent();
+            updateChartData(); 
         });
 
         document.getElementById('stockSelector').addEventListener('change', (e) => { currentStock = e.target.value; updateChartData(); });
         
         document.querySelectorAll('.tf-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                const targetTf = e.target.dataset.tf;
+                
+                if (!isCandleMode && targetTf !== '1D') {
+                    isCandleMode = true;
+                    candleSeries.applyOptions({ visible: true });
+                    lineSeries.applyOptions({ visible: false });
+                    document.getElementById('chartIconLine').classList.remove('hidden');
+                    document.getElementById('chartIconCandle').classList.add('hidden');
+                    document.getElementById('chartToggleText').innerText = '切換為曲線';
+                }
+
                 document.querySelectorAll('.tf-btn').forEach(b => { b.classList.remove('bg-brand-accent', 'text-white', 'shadow-lg'); b.classList.add('text-gray-400'); });
                 e.target.classList.remove('text-gray-400'); e.target.classList.add('bg-brand-accent', 'text-white', 'shadow-lg');
-                currentTimeframe = e.target.dataset.tf; updateChartData();
+                currentTimeframe = targetTf; 
+                updateChartData();
             });
         });
         
