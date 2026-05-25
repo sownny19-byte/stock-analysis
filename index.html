@@ -8,10 +8,10 @@
     <!-- 引入 Tailwind CSS 框架 -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 引入 TradingView Lightweight Charts (指定穩定版本，修復載入問題) -->
+    <!-- 引入 TradingView Lightweight Charts -->
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
     
-    <!-- 引入 Firebase SDK (Compat 版本，適合純前端靜態網頁) -->
+    <!-- 引入 Firebase SDK (Compat 版本) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
@@ -26,8 +26,8 @@
                     colors: {
                         gray: { 850: '#1f2937', 900: '#111827', 950: '#030712' },
                         brand: {
-                            gold: '#ffd700', accent: '#3b82f6', danger: '#10b981', // K線綠色 (下跌)
-                            success: '#ef4444', // K線紅色 (上漲)
+                            gold: '#ffd700', accent: '#3b82f6', danger: '#10b981', // 綠跌
+                            success: '#ef4444', // 紅漲
                             warning: '#f59e0b', ma5: '#E5C158', ma10: '#73C0DE', ma20: '#EE6666'
                         }
                     }
@@ -42,15 +42,13 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 20px; }
-        
-        /* 隱藏 TradingView 的浮水印與優化 */
         .tv-lightweight-charts { border-radius: 0.5rem; overflow: hidden; }
         
         #reportOutput h3 { color: #fff; font-size: 1.15rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; border-left: 4px solid #3b82f6; padding-left: 0.5rem; }
         #reportOutput p, #reportOutput ul { margin-bottom: 1rem; color: #d1d5db; line-height: 1.6; }
         #reportOutput li { background: rgba(31, 41, 55, 0.5); padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; border: 1px solid rgba(75, 85, 99, 0.4); }
-        .up-color { color: #ef4444; } /* 台股漲 (紅) */
-        .down-color { color: #10b981; } /* 台股跌 (綠) */
+        .up-color { color: #ef4444; } 
+        .down-color { color: #10b981; } 
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-6 lg:p-8 custom-scrollbar relative">
@@ -152,14 +150,23 @@
                 </div>
 
                 <div class="w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 custom-scrollbar">
-                    <label class="text-xs text-gray-400 uppercase font-semibold mb-1 block">時間框架與均線分析</label>
+                    <label class="text-xs text-gray-400 uppercase font-semibold mb-1 block">時間框架與顯示模式</label>
                     <div class="flex bg-gray-800 p-1 rounded-lg border border-gray-700 min-w-max gap-1" id="timeframeContainer">
+                        <button id="toggleChartTypeBtn" class="px-3 py-1.5 text-xs font-bold rounded-md text-white bg-gray-700 hover:bg-gray-600 transition-colors flex items-center gap-1 border border-gray-600 shadow-sm mr-2">
+                            <i data-lucide="activity" class="h-3.5 w-3.5"></i> <span>切換為曲線</span>
+                        </button>
+                        <div class="w-px h-6 bg-gray-600 self-center mr-1"></div>
+                        <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="1D">1日</button>
+                        <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="3D">3日</button>
+                        <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="5D">5日</button>
+                        <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="1W">1週</button>
                         <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="1M">1個月</button>
                         <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="3M">3個月</button>
-                        <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md bg-brand-accent text-white transition-colors shadow-lg" data-tf="6M">6個月 (日K)</button>
-                        <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="1Y">1年 (週K)</button>
+                        <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md bg-brand-accent text-white transition-colors shadow-lg" data-tf="6M">6個月</button>
+                        <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="1Y">1年</button>
+                        <button class="tf-btn px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-white transition-colors" data-tf="MAX">最早</button>
                         <div class="w-px h-6 bg-gray-600 mx-1 self-center"></div>
-                        <button id="toggleMABtn" class="px-3 py-1.5 text-xs font-medium rounded-md text-brand-ma10 border border-brand-ma10/50 hover:bg-brand-ma10/10 transition-colors flex items-center gap-1">
+                        <button id="toggleMABtn" class="px-3 py-1.5 text-xs font-medium rounded-md text-brand-ma10 border border-brand-ma10/50 bg-brand-ma10/20 hover:bg-brand-ma10/30 transition-colors flex items-center gap-1">
                             <i data-lucide="git-commit" class="h-3 w-3"></i> 均線開關
                         </button>
                     </div>
@@ -169,7 +176,7 @@
             <!-- K線與 MA 指標數值列 -->
             <div class="flex flex-wrap items-center gap-4 mb-2 px-2" id="klineLegend">
                 <div class="flex items-center gap-3 mr-4">
-                    <span class="text-xs text-gray-400">最新收盤</span>
+                    <span class="text-xs text-gray-400">當前收盤</span>
                     <span class="text-lg font-bold text-white font-mono" id="statPrice">---</span>
                 </div>
                 <div class="flex items-center gap-2 text-xs font-mono">
@@ -184,6 +191,7 @@
         </div>
     </div>
 
+    <!-- 彈出視窗系列略 (與先前完全相同) -->
     <!-- 新增/編輯標的 Modal -->
     <div id="addModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-opacity">
         <div class="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
@@ -261,7 +269,6 @@
         </div>
     </div>
 
-    <!-- 現金編輯 Modal -->
     <div id="cashModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-850">
@@ -280,7 +287,6 @@
         </div>
     </div>
 
-    <!-- 刪除確認 Modal -->
     <div id="confirmModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-[#10b981]/30 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div class="p-6 text-center space-y-4">
@@ -297,7 +303,6 @@
         </div>
     </div>
 
-    <!-- AI 戰術報告 Modal -->
     <div id="reportModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden transform transition-all shadow-[0_0_50px_rgba(59,130,246,0.15)]">
             <div class="flex justify-between items-center p-5 border-b border-gray-800 bg-gray-850">
@@ -320,18 +325,12 @@
         </div>
     </div>
 
-    <!-- 系統推播通知 -->
     <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-gray-850 border border-brand-accent text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-[100] pointer-events-none">
         <i data-lucide="check-circle" class="text-brand-accent h-5 w-5"></i>
         <span id="toastMsg" class="font-medium">系統訊息</span>
     </div>
 
     <script>
-        /* =============================================================================
-         [重要] FIREBASE 雲端資料庫設定區
-         系統具備防呆機制：若設定為空或失效，將自動降級為本機 LocalStorage 模式。
-        =============================================================================
-        */
         const firebaseConfig = {
             apiKey: "AIzaSyCvO_F80lJe9u42UfrSKQC_bAs9w3aCmx8",
             authDomain: "stock-analysis-3a851.firebaseapp.com",
@@ -342,11 +341,15 @@
             measurementId: "G-B9MGB90GES"
         };
 
-        // 系統變數初始化
         let db = null;
         let useFirebase = false;
         let chart = null;
+        
+        // 兩種主圖表實例
         let candleSeries = null;
+        let lineSeries = null;
+        let isCandleMode = true; // 預設 K 線
+        
         let ma5Series = null, ma10Series = null, ma20Series = null;
         let volumeSeries = null;
         let showMA = true;
@@ -357,7 +360,6 @@
         let editingTarget = { type: null, index: -1 }; 
         let confirmAction = null;
 
-        // 預設戰術資料庫 (v10 基準狀態)
         const defaultState = {
             inventory: [
                 { id: "0050", name: "台灣50", cost: 57.18, price: 97.30, shares: 1706 },
@@ -377,7 +379,6 @@
 
         let appState = defaultState;
         
-        // 股票基本元資料 (供模擬K線生成器使用)
         const stocksMeta = {
             "0000": { name: "加權指數", price: taiexCurrentValue, vol: 0.008, trend: 0.01 },
             "0050": { vol: 0.012, trend: 0.02 }, "00713": { vol: 0.005, trend: 0.01 }, "00757": { vol: 0.02, trend: 0.05 },
@@ -387,8 +388,6 @@
 
         const initSystem = async () => {
             lucide.createIcons();
-            
-            // 嘗試初始化 Firebase
             try {
                 if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
                     firebase.initializeApp(firebaseConfig);
@@ -396,14 +395,12 @@
                     useFirebase = true;
                     updateCloudStatus(true, "已連線雲端 (Firebase)");
                     
-                    // 從 Firestore 讀取資料
                     const docRef = db.collection("hunterData").doc("mainPortfolio");
                     const doc = await docRef.get();
                     if (doc.exists) {
                         appState = doc.data();
                         showToast("已從雲端同步最新戰術配置", "cloud-download", "text-brand-accent");
                     } else {
-                        // 初始化雲端資料庫
                         await docRef.set(appState);
                     }
                 } else {
@@ -411,7 +408,7 @@
                     appState = JSON.parse(localStorage.getItem('hunterState_v10')) || defaultState;
                 }
             } catch (error) {
-                console.warn("Firebase 連線失敗，切換至本機模式:", error);
+                console.warn("Firebase 連線失敗:", error);
                 updateCloudStatus(false, "離線模式 (連線失敗)");
                 appState = JSON.parse(localStorage.getItem('hunterState_v10')) || defaultState;
             }
@@ -420,7 +417,6 @@
             initTradingViewChart();
             updateChartData();
             
-            // 時間更新
             setInterval(() => {
                 const now = new Date();
                 document.getElementById('currentTimeDisplay').innerText = 
@@ -440,7 +436,6 @@
             lucide.createIcons({ root: el });
         };
 
-        // 存檔機制 (同時寫入 Cloud 與 Local)
         const saveState = async () => {
             if (useFirebase && db) {
                 try {
@@ -475,7 +470,6 @@
         const updateTotalAssets = () => {
             let totalCost = appState.cash;
             let currentValue = appState.cash;
-
             appState.inventory.forEach(item => {
                 totalCost += item.cost * item.shares;
                 currentValue += item.price * item.shares;
@@ -485,7 +479,6 @@
             document.getElementById('totalAssetValue').innerText = `$${currentValue.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
             const returnEl = document.getElementById('totalAssetReturn');
             
-            // 台股紅漲綠跌設定
             if(returnRate >= 0) {
                 returnEl.className = "text-lg lg:text-xl font-bold text-[#ef4444] flex items-center gap-1";
                 returnEl.innerHTML = `<i data-lucide="trending-up" class="h-5 w-5"></i> +${returnRate.toFixed(2)}%`;
@@ -506,7 +499,7 @@
                 const profitPct = ((item.price - item.cost) / item.cost) * 100;
                 const ratio = totalValue > 0 ? ((item.price * item.shares) / totalValue) * 100 : 0;
                 const isProfit = profit >= 0;
-                const colorCls = isProfit ? 'text-[#ef4444]' : 'text-[#10b981]'; // 紅漲綠跌
+                const colorCls = isProfit ? 'text-[#ef4444]' : 'text-[#10b981]';
 
                 html += `
                     <tr class="hover:bg-gray-800/40 transition-colors group">
@@ -601,12 +594,10 @@
             const container = document.getElementById('tvChartContainer');
             
             if (typeof LightweightCharts === 'undefined') {
-                console.error("LightweightCharts 載入失敗！");
-                container.innerHTML = '<div class="text-brand-warning flex items-center justify-center h-full">圖表套件載入失敗，請檢查網路連線後重新整理頁面。</div>';
+                container.innerHTML = '<div class="text-brand-warning flex items-center justify-center h-full">圖表套件載入失敗，請重新整理頁面。</div>';
                 return;
             }
             
-            // 建立圖表實體 (暗黑專業風)
             const chartProperties = {
                 layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#D9D9D9' },
                 grid: { vertLines: { color: 'rgba(42, 46, 57, 0.3)' }, horzLines: { color: 'rgba(42, 46, 57, 0.3)' } },
@@ -618,26 +609,35 @@
             
             chart = LightweightCharts.createChart(container, chartProperties);
             
-            // 建立 Candlestick Series (台股紅漲綠跌設定)
+            // 實例 1: K線
             candleSeries = chart.addCandlestickSeries({
                 upColor: '#ef4444', downColor: '#10b981', borderDownColor: '#10b981', borderUpColor: '#ef4444', wickDownColor: '#10b981', wickUpColor: '#ef4444'
             });
 
-            // 建立 Volume Histogram Series
+            // 實例 2: 曲線 (預設隱藏)
+            lineSeries = chart.addLineSeries({ 
+                color: '#3b82f6', lineWidth: 2, crosshairMarkerVisible: true
+            });
+            lineSeries.applyOptions({ visible: false });
+
+            // 附屬指標
             volumeSeries = chart.addHistogramSeries({
                 color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: '', scaleMargins: { top: 0.8, bottom: 0 }
             });
 
-            // 建立 Moving Averages (均線)
             ma5Series = chart.addLineSeries({ color: '#E5C158', lineWidth: 2, crosshairMarkerVisible: false });
             ma10Series = chart.addLineSeries({ color: '#73C0DE', lineWidth: 2, crosshairMarkerVisible: false });
             ma20Series = chart.addLineSeries({ color: '#EE6666', lineWidth: 2, crosshairMarkerVisible: false });
 
-            // 游標移動時更新數值
             chart.subscribeCrosshairMove(param => {
-                if (param.time && param.seriesData.get(candleSeries)) {
-                    const priceData = param.seriesData.get(candleSeries);
-                    document.getElementById('statPrice').innerText = priceData.close.toFixed(2);
+                if (param.time) {
+                    let priceData;
+                    if(isCandleMode && param.seriesData.get(candleSeries)) {
+                        priceData = param.seriesData.get(candleSeries).close;
+                    } else if (!isCandleMode && param.seriesData.get(lineSeries)) {
+                        priceData = param.seriesData.get(lineSeries).value;
+                    }
+                    if(priceData) document.getElementById('statPrice').innerText = priceData.toFixed(2);
                     
                     if(showMA) {
                         const m5 = param.seriesData.get(ma5Series);
@@ -650,59 +650,109 @@
                 }
             });
 
-            // 視窗縮放自動適應
             window.addEventListener('resize', () => {
                 chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
             });
         };
 
-        // 模擬 K 線數據產生器 (包含 MA 計算)
-        const generateKLineData = (basePrice, volatility, trend, days) => {
-            let data = [], volumeData = [];
+        // K線與曲線資料引擎 (支援超高解析度日內資訊)
+        const generateKLineData = (basePrice, volatility, trend, tf) => {
+            let candleData = [], lineData = [], volumeData = [];
             let currentPrice = basePrice * (1 - trend);
-            let date = new Date();
-            date.setDate(date.getDate() - days);
-            
-            for(let i = 0; i <= days; i++) {
-                if(date.getDay() !== 0 && date.getDay() !== 6) { // 避開假日
+
+            const createPoint = (timeVal, open, high, low, close, volVal, isUp) => {
+                candleData.push({ time: timeVal, open, high, low, close });
+                lineData.push({ time: timeVal, value: close });
+                volumeData.push({ time: timeVal, value: volVal, color: isUp ? 'rgba(239, 68, 68, 0.5)' : 'rgba(16, 185, 129, 0.5)' });
+            };
+
+            const isIntraday = ['1D', '3D', '5D'].includes(tf);
+
+            if (isIntraday) {
+                // 分時級別資訊 (1日:5分, 3日:15分, 5日:30分)
+                let days = tf === '1D' ? 1 : (tf === '3D' ? 3 : 5);
+                let intervalMin = tf === '1D' ? 5 : (tf === '3D' ? 15 : 30);
+                let pointsPerDay = 270 / intervalMin; // 台股每天交易 270 分鐘 (09:00 - 13:30)
+
+                let simDates = [];
+                let tempDate = new Date();
+                while (simDates.length < days) {
+                    if (tempDate.getDay() !== 0 && tempDate.getDay() !== 6) {
+                        simDates.unshift(new Date(tempDate)); // 避開六日
+                    }
+                    tempDate.setDate(tempDate.getDate() - 1);
+                }
+
+                // 為了讓圖表顯示正確的 UTC+8 本地時間，計算系統時差偏移量
+                let offset = new Date().getTimezoneOffset() * 60; 
+
+                simDates.forEach((simDate, dayIndex) => {
+                    // 設定起點為當日早上 09:00:00
+                    let baseTsSeconds = Math.floor(new Date(simDate.getFullYear(), simDate.getMonth(), simDate.getDate(), 9, 0, 0).getTime() / 1000);
+                    let localTsSeconds = baseTsSeconds - offset;
+
+                    for (let p = 0; p <= pointsPerDay; p++) {
+                        let open = currentPrice;
+                        let close = (dayIndex === days - 1 && p === pointsPerDay) ? basePrice : open * (1 + (Math.random() * volatility * 0.5 - volatility * 0.25));
+                        let high = Math.max(open, close) * (1 + Math.random() * volatility * 0.2);
+                        let low = Math.min(open, close) * (1 - Math.random() * volatility * 0.2);
+                        let volVal = Math.floor(Math.random() * 2000) + 500;
+
+                        createPoint(localTsSeconds + (p * intervalMin * 60), open, high, low, close, volVal, close >= open);
+                        currentPrice = close;
+                    }
+                });
+
+            } else {
+                // 日K/週K 級別資訊
+                let days = 22;
+                if(tf === '1W') days = 5;
+                else if(tf === '1M') days = 22;
+                else if(tf === '3M') days = 65;
+                else if(tf === '6M') days = 130;
+                else if(tf === '1Y') days = 250;
+                else if(tf === 'MAX') days = 1200;
+
+                let simDates = [];
+                let tempDate = new Date();
+                while (simDates.length < days) {
+                    if (tempDate.getDay() !== 0 && tempDate.getDay() !== 6) {
+                        simDates.unshift(new Date(tempDate));
+                    }
+                    tempDate.setDate(tempDate.getDate() - 1);
+                }
+
+                simDates.forEach((simDate, index) => {
+                    let timeStr = `${simDate.getFullYear()}-${String(simDate.getMonth()+1).padStart(2,'0')}-${String(simDate.getDate()).padStart(2,'0')}`;
                     let open = currentPrice;
-                    let close = i === days ? basePrice : open * (1 + (Math.random() * volatility * 2 - volatility));
+                    let close = index === days - 1 ? basePrice : open * (1 + (Math.random() * volatility * 2 - volatility));
                     let high = Math.max(open, close) * (1 + Math.random() * volatility * 0.5);
                     let low = Math.min(open, close) * (1 - Math.random() * volatility * 0.5);
-                    let timeStr = date.toISOString().split('T')[0];
-                    
-                    data.push({ time: timeStr, open, high, low, close });
-                    
-                    // 模擬成交量
-                    let isUp = close > open;
                     let volVal = Math.floor(Math.random() * 5000) + 1000;
-                    volumeData.push({ time: timeStr, value: volVal, color: isUp ? 'rgba(239, 68, 68, 0.5)' : 'rgba(16, 185, 129, 0.5)' }); // 紅漲綠跌透明版
-                    
+
+                    createPoint(timeStr, open, high, low, close, volVal, close >= open);
                     currentPrice = close;
-                }
-                date.setDate(date.getDate() + 1);
+                });
             }
 
-            // 計算 MA 輔助函數
             const calculateMA = (period) => {
                 let maData = [];
-                for (let i = 0; i < data.length; i++) {
+                for (let i = 0; i < candleData.length; i++) {
                     if (i < period - 1) continue;
                     let sum = 0;
-                    for (let j = 0; j < period; j++) sum += data[i - j].close;
-                    maData.push({ time: data[i].time, value: sum / period });
+                    for (let j = 0; j < period; j++) sum += candleData[i - j].close;
+                    maData.push({ time: candleData[i].time, value: sum / period });
                 }
                 return maData;
             };
 
-            return { candle: data, volume: volumeData, ma5: calculateMA(5), ma10: calculateMA(10), ma20: calculateMA(20) };
+            return { candle: candleData, line: lineData, volume: volumeData, ma5: calculateMA(5), ma10: calculateMA(10), ma20: calculateMA(20) };
         };
 
         const updateChartData = () => {
-            if(!chart || !candleSeries) return;
+            if(!chart || !candleSeries || !lineSeries) return;
             const meta = stocksMeta[currentStock] || { price: 100, vol: 0.02, trend: 0 };
             
-            // 依據選擇尋找最新收盤價
             let currentPrice = meta.price;
             if(currentStock === "0000") currentPrice = taiexCurrentValue;
             else {
@@ -710,32 +760,54 @@
                 if(found) currentPrice = found.price;
             }
 
-            let days = 130; // 預設 6M
-            if(currentTimeframe === '1M') days = 22;
-            if(currentTimeframe === '3M') days = 65;
-            if(currentTimeframe === '1Y') days = 250;
-            
-            const chartData = generateKLineData(currentPrice, meta.vol, meta.trend, days);
+            const chartData = generateKLineData(currentPrice, meta.vol, meta.trend, currentTimeframe);
             
             candleSeries.setData(chartData.candle);
+            lineSeries.setData(chartData.line); // 兩者資料同步準備
             volumeSeries.setData(chartData.volume);
+            
             ma5Series.setData(showMA ? chartData.ma5 : []);
             ma10Series.setData(showMA ? chartData.ma10 : []);
             ma20Series.setData(showMA ? chartData.ma20 : []);
             
             chart.timeScale().fitContent();
             
-            // 更新右側面板最新價位
             document.getElementById('statPrice').innerText = currentPrice.toFixed(2);
             if(chartData.ma5.length > 0) {
                 document.getElementById('ma5Val').innerText = chartData.ma5[chartData.ma5.length-1].value.toFixed(2);
                 document.getElementById('ma10Val').innerText = chartData.ma10[chartData.ma10.length-1].value.toFixed(2);
                 document.getElementById('ma20Val').innerText = chartData.ma20[chartData.ma20.length-1].value.toFixed(2);
+            } else {
+                document.getElementById('ma5Val').innerText = '---';
+                document.getElementById('ma10Val').innerText = '---';
+                document.getElementById('ma20Val').innerText = '---';
             }
         };
 
-        // UI 事件綁定
+        // K 線 / 曲線切換器
+        document.getElementById('toggleChartTypeBtn').addEventListener('click', (e) => {
+            isCandleMode = !isCandleMode;
+            candleSeries.applyOptions({ visible: isCandleMode });
+            lineSeries.applyOptions({ visible: !isCandleMode });
+            
+            const btnSpan = e.currentTarget.querySelector('span');
+            const btnIcon = e.currentTarget.querySelector('i');
+            
+            if(isCandleMode) {
+                btnSpan.innerText = '切換為曲線';
+                btnIcon.setAttribute('data-lucide', 'activity');
+            } else {
+                btnSpan.innerText = '切換為 K線';
+                btnIcon.setAttribute('data-lucide', 'bar-chart-2');
+            }
+            lucide.createIcons();
+            
+            // 更換模式後重繪一次確保 Y 軸精準
+            chart.timeScale().fitContent();
+        });
+
         document.getElementById('stockSelector').addEventListener('change', (e) => { currentStock = e.target.value; updateChartData(); });
+        
         document.querySelectorAll('.tf-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.tf-btn').forEach(b => { b.classList.remove('bg-brand-accent', 'text-white', 'shadow-lg'); b.classList.add('text-gray-400'); });
@@ -743,6 +815,7 @@
                 currentTimeframe = e.target.dataset.tf; updateChartData();
             });
         });
+        
         document.getElementById('toggleMABtn').addEventListener('click', (e) => {
             showMA = !showMA;
             e.target.classList.toggle('bg-brand-ma10/20');
@@ -874,7 +947,7 @@
             
             modal.classList.remove('hidden'); loading.classList.remove('hidden'); output.classList.add('hidden');
             
-            await new Promise(resolve => setTimeout(resolve, 1500)); // 模擬 AI 生成時間
+            await new Promise(resolve => setTimeout(resolve, 1500)); 
 
             let invHtml = '';
             appState.inventory.forEach(i => {
