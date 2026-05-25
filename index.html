@@ -64,7 +64,7 @@
                     <i data-lucide="clock" class="h-4 w-4"></i> 基準時間：<span id="currentTimeDisplay">讀取中...</span>
                 </p>
                 <button onclick="syncPricesWithAI()" id="syncBtn" class="flex items-center gap-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-brand-accent px-2.5 py-1 rounded-md transition-colors border border-gray-700 shadow-sm" title="AI 搜尋擷取最新報價">
-                    <i id="syncIcon" data-lucide="search" class="h-3.5 w-3.5"></i> 搜尋 Yahoo 同步
+                    <i id="syncIcon" data-lucide="search" class="h-3.5 w-3.5"></i> Google 即時同步
                 </button>
                 <span id="cloudStatus" class="flex items-center gap-1 text-xs text-brand-warning bg-brand-warning/10 px-2 py-1 rounded-md" title="雲端資料庫連線狀態">
                     <i data-lucide="cloud-off" class="h-3.5 w-3.5"></i> 本機模式 (未連結 Firebase)
@@ -355,7 +355,7 @@
         
         let currentStock = "6116"; 
         let currentTimeframe = "6M";
-        let taiexCurrentValue = 23550.82;
+        let taiexCurrentValue = 43644.40; // 依照長官指示預設更新為最新行情
         let editingTarget = { type: null, index: -1 }; 
         let confirmAction = null;
 
@@ -383,6 +383,50 @@
             "0050": { vol: 0.012, trend: 0.02 }, "00713": { vol: 0.005, trend: 0.01 }, "00757": { vol: 0.02, trend: 0.05 },
             "6116": { vol: 0.035, trend: 0.08 }, "2330": { vol: 0.015, trend: 0.03 }, "1802": { vol: 0.025, trend: -0.05 },
             "2369": { vol: 0.03, trend: 0.04 }, "3481": { vol: 0.04, trend: -0.02 }, "6147": { vol: 0.025, trend: -0.06 }
+        };
+
+        // --- Gemini AI 聯網搜尋引擎架構 (真實連線版) ---
+        const apiKey = ""; // 執行環境會在底層自動注入，請保持空字串
+        
+        const fetchWithRetry = async (url, options, retries = 5, delay = 1000) => {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`HTTP status ${response.status}`);
+                    return await response.json();
+                } catch (error) {
+                    if (i === retries - 1) throw error;
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2;
+                }
+            }
+        };
+
+        const searchStockWithGemini = async (query, schemaProperties) => {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: query }] }],
+                systemInstruction: { parts: [{ text: "You are a professional financial data assistant. You MUST use the google_search tool to find the absolute most recent and accurate Taiwan stock market prices. Respond strictly in JSON format as requested." }] },
+                tools: [{ google_search: {} }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: schemaProperties
+                }
+            };
+
+            try {
+                const result = await fetchWithRetry(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) return JSON.parse(text);
+                return null;
+            } catch (e) {
+                console.error("API 連線失敗", e);
+                return null;
+            }
         };
 
         const initSystem = async () => {
@@ -917,16 +961,29 @@
             if (!idInput) return showToast('請先輸入代號或名稱', 'alert-triangle', 'text-brand-warning');
 
             fetchBtn.disabled = true; fetchIcon.classList.add('animate-spin');
-            showToast(`正在網頁搜尋 "${idInput} Yahoo 股市"...`, 'search');
+            showToast(`🚀 正在呼叫 API，利用 Google 搜尋 "${idInput}" 真實報價...`, 'search');
             
-            await new Promise(resolve => setTimeout(resolve, 1200)); 
+            const query = `請利用 Google 搜尋台灣股市代號或名稱為 "${idInput}" 的最新「真實現價」或「收盤價」，以及其完整的股票名稱。`;
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    name: { type: "STRING", description: "股票名稱" },
+                    price: { type: "NUMBER", description: "最新精確股價" }
+                }
+            };
+
+            const result = await searchStockWithGemini(query, schema);
             
-            document.getElementById('modalId').value = idInput;
-            document.getElementById('modalName').value = idInput === "2317" ? "鴻海" : (idInput === "00929" ? "復華台灣科技優息" : "搜尋擷取標的");
-            document.getElementById('modalPrice').value = idInput === "2317" ? 175.5 : 20.15;
+            if (result && result.name && result.price) {
+                document.getElementById('modalId').value = idInput;
+                document.getElementById('modalName').value = result.name;
+                document.getElementById('modalPrice').value = result.price;
+                showToast(`✅ 解析成功！已擷取 ${result.name} 最新價位 $${result.price}`);
+            } else {
+                showToast('搜尋逾時或查無資料，請確認代號並手動輸入', 'alert-triangle', 'text-brand-warning');
+            }
             
             fetchBtn.disabled = false; fetchIcon.classList.remove('animate-spin');
-            showToast('搜尋解析成功！已擷取最新價位');
         };
 
         const syncPricesWithAI = async () => {
@@ -935,29 +992,45 @@
             const timeDisplay = document.getElementById('currentTimeDisplay');
             
             btn.disabled = true; icon.classList.add('animate-spin');
-            showToast('啟動 AI 聯網搜尋程序...', 'search');
+            showToast('啟動 Gemini API 聯網引擎抓取真實報價...', 'search');
+            timeDisplay.innerHTML = `<span class="text-brand-warning animate-pulse">連線 Google 搜尋比對中: 擷取全數標的...</span>`;
 
             const allTargets = [...new Set([...appState.inventory.map(i=>i.id), ...appState.watchlist.map(i=>i.id)])];
             
-            for (let id of allTargets) {
-                timeDisplay.innerHTML = `<span class="text-brand-warning animate-pulse">即時搜尋中: ${id} Yahoo股市...</span>`;
-                
-                await new Promise(resolve => setTimeout(resolve, 350)); 
-                
-                const priceOffset = 1 + (Math.random() * 0.015 - 0.0075);
-                const invItem = appState.inventory.find(i=>i.id === id);
-                const wlItem = appState.watchlist.find(i=>i.id === id);
-                
-                if(invItem) invItem.price = parseFloat((invItem.price * priceOffset).toFixed(2));
-                if(wlItem) wlItem.price = parseFloat((wlItem.price * priceOffset).toFixed(2));
-            }
+            const query = `請使用 Google 搜尋以下台灣股票代號的最新「真實收盤價」或「即時現價」：\n${allTargets.join(', ')} \n請務必加上「台灣大盤加權指數 (TAIEX)」，將其代號標為 '0000'，並填入最新點數。`;
+            
+            const schema = {
+                type: "ARRAY",
+                items: {
+                    type: "OBJECT",
+                    properties: {
+                        id: { type: "STRING", description: "股票代號" },
+                        price: { type: "NUMBER", description: "股價或大盤指數" }
+                    }
+                }
+            };
 
-            saveState(); 
-            updateChartData();
+            const results = await searchStockWithGemini(query, schema);
+
+            if (results && Array.isArray(results)) {
+                results.forEach(res => {
+                    if (res.id === '0000') taiexCurrentValue = res.price;
+                    const invItem = appState.inventory.find(i => i.id === res.id);
+                    const wlItem = appState.watchlist.find(i => i.id === res.id);
+                    if (invItem) invItem.price = res.price;
+                    if (wlItem) wlItem.price = res.price;
+                });
+                
+                stocksMeta["0000"].price = taiexCurrentValue;
+                
+                saveState(); 
+                updateChartData();
+                showToast('✅ 聯網任務完成，各標的真實報價已精準同步', 'cloud-lightning');
+            } else {
+                showToast('API 聯網發生異常，請稍後再試', 'alert-triangle', 'text-brand-warning');
+            }
             
             btn.disabled = false; icon.classList.remove('animate-spin');
-            showToast('搜尋任務完成，各時段報價已同步', 'cloud-lightning');
-            
             const now = new Date();
             timeDisplay.innerText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} (運作中)`;
         };
