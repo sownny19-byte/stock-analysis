@@ -164,15 +164,33 @@
     <!-- 分頁 2: 股票戰術中心                       -->
     <!-- ========================================== -->
     <div id="tab-stocks" class="tab-content mb-10">
-        <div class="mb-4 flex flex-wrap items-center justify-between border-b border-gray-800 pb-2 gap-3">
+        <div class="mb-4 flex flex-col md:flex-row md:items-center justify-between border-b border-gray-800 pb-3 gap-4">
             <h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="trending-up" class="text-brand-accent h-5 w-5"></i> 股票戰術中心</h2>
-            <div class="flex gap-2">
-                <button onclick="openCashModal()" class="flex items-center gap-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-600 transition-colors">
-                    <i data-lucide="wallet" class="h-3.5 w-3.5 text-brand-accent"></i> 交割金: <span id="stockCashVal" class="font-mono text-white">$---</span>
-                </button>
-                <button onclick="openStockAddModal()" class="flex items-center gap-1 text-xs bg-brand-accent hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-lg transition-colors">
-                    <i data-lucide="plus" class="h-3.5 w-3.5"></i> 新增標的
-                </button>
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-3 bg-gray-800/80 px-3 py-1.5 rounded-lg border border-gray-700 shadow-inner w-full sm:w-auto justify-between sm:justify-start">
+                    <div>
+                        <p class="text-[10px] text-gray-400">總投資成本</p>
+                        <p class="text-sm font-bold text-white font-mono" id="stockTotalCost">$0</p>
+                    </div>
+                    <div class="w-px h-6 bg-gray-600"></div>
+                    <div>
+                        <p class="text-[10px] text-gray-400">損益後現值</p>
+                        <p class="text-sm font-bold text-brand-accent font-mono" id="stockTotalValue">$0</p>
+                    </div>
+                    <div class="w-px h-6 bg-gray-600"></div>
+                    <div>
+                        <p class="text-[10px] text-gray-400">未實現損益</p>
+                        <p class="text-sm font-bold font-mono" id="stockUnrealizedPL">$0</p>
+                    </div>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="openCashModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-600 transition-colors">
+                        <i data-lucide="wallet" class="h-3.5 w-3.5 text-brand-accent"></i> 交割金: <span id="stockCashVal" class="font-mono text-white">$---</span>
+                    </button>
+                    <button onclick="openStockAddModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-1 text-xs bg-brand-accent hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-lg transition-colors">
+                        <i data-lucide="plus" class="h-3.5 w-3.5"></i> 新增標的
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -250,7 +268,7 @@
                 <!-- 銀行列表 -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="bankListContainer"></div>
                 
-                <!-- NEW: 收支統計中心 -->
+                <!-- 收支統計中心 -->
                 <div class="bg-gray-800/80 p-5 rounded-2xl shadow-xl border border-gray-700">
                     <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
                         <i data-lucide="bar-chart" class="text-blue-400 h-4 w-4"></i> 收支統計儀表板
@@ -450,7 +468,6 @@
                 { id: "f2", name: "安聯收益成長基金", amount: 152000 }
             ],
             transactions: [
-                // 更新為包含年份的格式 YYYY/MM/DD
                 { id: "tx1", date: "2026/05/29", type: "expense", amount: 1500, note: "週末聚餐", bankId: "b1", bankName: "台新 Richart" }
             ]
         };
@@ -621,7 +638,27 @@
             // Inventory
             const tbody = document.getElementById('inventoryList');
             let totalStockVal = appState.stockCash;
-            appState.inventory.forEach(i => totalStockVal += i.price * i.shares);
+            let totalCost = 0;
+            let totalValue = 0;
+            
+            appState.inventory.forEach(i => {
+                totalStockVal += i.price * i.shares;
+                totalCost += i.cost * i.shares;
+                totalValue += i.price * i.shares;
+            });
+
+            // 更新 股票戰術中心的統計面板
+            const elTotalCost = document.getElementById('stockTotalCost');
+            const elTotalValue = document.getElementById('stockTotalValue');
+            const elUnrealizedPL = document.getElementById('stockUnrealizedPL');
+
+            if(elTotalCost) elTotalCost.innerText = `$${totalCost.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+            if(elTotalValue) elTotalValue.innerText = `$${totalValue.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+            if(elUnrealizedPL) {
+                const unrealizedPL = totalValue - totalCost;
+                elUnrealizedPL.innerText = `${unrealizedPL >= 0 ? '+' : ''}$${unrealizedPL.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+                elUnrealizedPL.className = `text-sm font-bold font-mono ${unrealizedPL >= 0 ? 'text-[#ef4444]' : 'text-[#10b981]'}`;
+            }
             
             tbody.innerHTML = appState.inventory.map((item, idx) => {
                 const profit = (item.price - item.cost) * item.shares;
@@ -825,7 +862,7 @@
             saveState();
             e.target.reset(); 
             document.getElementById('txType').value = 'expense'; 
-            showToast('記帳成功，銀行餘額與年度統計已更新');
+            showToast('記帳成功，銀行餘額與年度統計已同步更新');
         };
 
         const deleteTransaction = (id) => {
