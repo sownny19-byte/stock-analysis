@@ -54,6 +54,20 @@
 </head>
 <body class="min-h-screen p-4 md:p-6 lg:p-8 custom-scrollbar relative">
     
+    <!-- 系統安全驗證閘門 (Login Overlay) -->
+    <div id="loginOverlay" class="fixed inset-0 bg-gray-950 z-[99999] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="glass-panel p-8 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col items-center border border-brand-accent/30">
+            <i data-lucide="shield-check" class="text-brand-accent h-14 w-14 mb-4"></i>
+            <h2 class="text-2xl font-bold text-white mb-2 tracking-widest">系統安全驗證</h2>
+            <p class="text-sm text-gray-400 mb-6 text-center">請輸入授權金鑰以進入戰術指揮中心</p>
+            <input type="password" id="loginPwd" onkeypress="if(event.key === 'Enter') handleLogin()" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-center text-white tracking-[0.5em] focus:border-brand-accent outline-none mb-4 transition-colors" placeholder="••••••">
+            <button onclick="handleLogin()" class="w-full bg-brand-accent hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                驗證登入
+            </button>
+            <p id="loginError" class="text-[#ef4444] text-xs mt-3 hidden opacity-0 transition-opacity">❌ 密碼錯誤，拒絕存取</p>
+        </div>
+    </div>
+
     <!-- 全局系統推播 -->
     <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-gray-850 border border-brand-accent text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-[100] pointer-events-none">
         <i data-lucide="check-circle" id="toastIcon" class="text-brand-accent h-5 w-5"></i>
@@ -550,6 +564,63 @@
             "0000": { name: "加權指數", price: taiexCurrentValue, vol: 0.008, trend: 0.01 },
             "0050": { vol: 0.012, trend: 0.02 }, "00713": { vol: 0.005, trend: 0.01 },
             "6116": { vol: 0.035, trend: 0.08 }, "2330": { vol: 0.015, trend: 0.03 }, "1802": { vol: 0.025, trend: -0.05 }
+        };
+
+        // ==========================================
+        // 登入與系統啟動邏輯
+        // ==========================================
+        const startApp = async () => {
+            await initFirebase();
+            setTimeout(() => {
+                initDonutChart();
+                renderAll();
+            }, 100);
+            
+            // 設定記帳系統預設日期為當天
+            const txDateEl = document.getElementById('txDate');
+            if(txDateEl) {
+                const today = new Date();
+                txDateEl.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            }
+
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('currentTimeDisplay').innerText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} (連線中)`;
+            }, 1000);
+        };
+
+        window.onload = () => {
+            // 驗證是否已經輸入過密碼 (於此 Session 中)
+            if (sessionStorage.getItem('isHunterAuth') === 'true') {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.body.style.overflow = '';
+                startApp();
+            } else {
+                document.body.style.overflow = 'hidden'; // 防止滾動背景
+                try { lucide.createIcons(); } catch(e){} // 確保圖示顯示
+            }
+        };
+
+        const handleLogin = () => {
+            const pwd = document.getElementById('loginPwd').value;
+            const err = document.getElementById('loginError');
+            if (pwd === '095219') {
+                sessionStorage.setItem('isHunterAuth', 'true');
+                const overlay = document.getElementById('loginOverlay');
+                overlay.style.opacity = '0'; // 淡出效果
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    document.body.style.overflow = '';
+                    startApp(); // 啟動主系統
+                }, 500);
+            } else {
+                err.classList.remove('hidden');
+                err.style.opacity = '1';
+                setTimeout(() => { 
+                    err.style.opacity = '0'; 
+                    setTimeout(() => err.classList.add('hidden'), 300); 
+                }, 2000);
+            }
         };
 
         // ==========================================
@@ -1283,7 +1354,7 @@
             const id = document.getElementById('sModalId').value.trim();
             if(!id) return showToast('請輸入代號', 'alert-triangle', 'text-brand-warning');
             
-            showToast(`🚀 正在呼叫 API 搜尋 ${id} 最新真實報報價...`, 'search');
+            showToast(`🚀 正在呼叫 API 搜尋 ${id} 最新真實報價...`, 'search');
             
             if (!geminiApiKey) {
                 await new Promise(r => setTimeout(r, 1000));
@@ -1343,26 +1414,6 @@
             
             saveState(); if(isChartInitialized) updateChartData();
             btn.disabled = false; icon.classList.remove('animate-spin');
-        };
-
-        window.onload = async () => {
-            await initFirebase();
-            setTimeout(() => {
-                initDonutChart();
-                renderAll();
-            }, 100);
-            
-            // 設定記帳系統預設日期為當天
-            const txDateEl = document.getElementById('txDate');
-            if(txDateEl) {
-                const today = new Date();
-                txDateEl.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-            }
-
-            setInterval(() => {
-                const now = new Date();
-                document.getElementById('currentTimeDisplay').innerText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} (連線中)`;
-            }, 1000);
         };
     </script>
 </body>
