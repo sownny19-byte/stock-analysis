@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>全方位資產指揮中心 | 個人財富終端</title>
     
-    <!-- 核心套件引入 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
@@ -25,7 +24,7 @@
                         brand: {
                             gold: '#ffd700', accent: '#3b82f6', danger: '#10b981', 
                             success: '#ef4444', warning: '#f59e0b', 
-                            fund: '#8b5cf6', bank: '#14b8a6'
+                            fund: '#8b5cf6', bank: '#14b8a6', debt: '#f43f5e'
                         }
                     }
                 }
@@ -54,7 +53,6 @@
 </head>
 <body class="min-h-screen p-4 md:p-6 lg:p-8 custom-scrollbar relative">
     
-    <!-- 系統安全驗證閘門 (Login Overlay) -->
     <div id="loginOverlay" class="fixed inset-0 bg-gray-950 z-[99999] flex flex-col items-center justify-center transition-opacity duration-500">
         <div class="glass-panel p-8 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col items-center border border-brand-accent/30">
             <i data-lucide="shield-check" class="text-brand-accent h-14 w-14 mb-4"></i>
@@ -68,13 +66,11 @@
         </div>
     </div>
 
-    <!-- 全局系統推播 -->
     <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-gray-850 border border-brand-accent text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-[100] pointer-events-none">
         <i data-lucide="check-circle" id="toastIcon" class="text-brand-accent h-5 w-5"></i>
         <span id="toastMsg" class="font-medium text-sm">系統訊息</span>
     </div>
 
-    <!-- 頂部指揮中心標頭 -->
     <header class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-5">
         <div>
             <h1 class="text-3xl font-bold text-white flex items-center gap-3">
@@ -91,15 +87,31 @@
             </div>
         </div>
         
-        <div class="glass-panel px-6 py-4 rounded-2xl flex flex-col md:flex-row items-end md:items-center gap-4 shadow-xl border-t-4 border-t-brand-gold">
-            <div class="text-right md:text-left">
-                <p class="text-xs text-gray-400 uppercase font-semibold flex items-center gap-1"><i data-lucide="award" class="h-3 w-3 text-brand-gold"></i> 總淨資產 (Net Worth)</p>
-                <p class="text-3xl font-bold text-brand-gold" id="globalTotalAsset">---</p>
+        <div class="glass-panel px-6 py-4 rounded-2xl flex flex-col md:flex-row items-end md:items-center gap-4 shadow-xl border-t-4 border-t-brand-gold overflow-x-auto w-full xl:w-auto custom-scrollbar">
+            <div class="flex items-center gap-6 min-w-max">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase font-semibold">股票總值</p>
+                    <p class="text-lg font-bold text-brand-accent" id="head-stock-val">---</p>
+                </div>
+                <div class="h-8 w-px bg-gray-700"></div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase font-semibold">存款與基金</p>
+                    <p class="text-lg font-bold text-gray-300" id="head-safe-val">---</p>
+                </div>
+                <div class="h-8 w-px bg-gray-700"></div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase font-semibold">負債總額</p>
+                    <p class="text-lg font-bold text-brand-debt" id="ov-loan-val">---</p>
+                </div>
+                <div class="h-8 w-px bg-gray-700"></div>
+                <div class="text-right md:text-left">
+                    <p class="text-xs text-gray-400 uppercase font-semibold flex items-center gap-1"><i data-lucide="award" class="h-3 w-3 text-brand-gold"></i> 總淨資產 (Net Worth)</p>
+                    <p class="text-3xl font-bold text-brand-gold" id="globalTotalAsset">---</p>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- 導覽列 (分頁切換) -->
     <nav class="flex gap-2 mb-6 border-b border-gray-800 overflow-x-auto custom-scrollbar">
         <button onclick="switchTab('overview')" id="nav-overview" class="nav-btn active px-5 py-3 text-gray-400 font-bold flex items-center gap-2 whitespace-nowrap hover:text-gray-200 hover:bg-gray-800/50 rounded-t-lg">
             <i data-lucide="layout-dashboard" class="h-4 w-4"></i> 資產主頁
@@ -108,23 +120,22 @@
             <i data-lucide="trending-up" class="h-4 w-4"></i> 股票戰術中心
         </button>
         <button onclick="switchTab('banks')" id="nav-banks" class="nav-btn px-5 py-3 text-gray-400 font-bold flex items-center gap-2 whitespace-nowrap hover:text-gray-200 hover:bg-gray-800/50 rounded-t-lg">
-            <i data-lucide="landmark" class="h-4 w-4"></i> 銀行與記帳中心
+            <i data-lucide="landmark" class="h-4 w-4"></i> 銀行與記帳
         </button>
         <button onclick="switchTab('funds')" id="nav-funds" class="nav-btn px-5 py-3 text-gray-400 font-bold flex items-center gap-2 whitespace-nowrap hover:text-gray-200 hover:bg-gray-800/50 rounded-t-lg">
-            <i data-lucide="shield" class="h-4 w-4"></i> 保險與基金部位
+            <i data-lucide="shield" class="h-4 w-4"></i> 保險與基金
+        </button>
+        <button onclick="switchTab('loans')" id="nav-loans" class="nav-btn px-5 py-3 text-gray-400 font-bold flex items-center gap-2 whitespace-nowrap hover:text-gray-200 hover:bg-gray-800/50 rounded-t-lg">
+            <i data-lucide="credit-card" class="h-4 w-4"></i> 貸款與負債
         </button>
     </nav>
 
-    <!-- ========================================== -->
-    <!-- 分頁 1: 資產主頁 (Overview)                -->
-    <!-- ========================================== -->
     <div id="tab-overview" class="tab-content active mb-10">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- 左側: 環形圖與大盤 -->
             <div class="flex flex-col gap-6">
                 <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center min-h-[350px] shadow-xl">
                     <h3 class="text-sm font-bold text-white mb-4 self-start w-full border-b border-gray-700 pb-2 flex items-center gap-2">
-                        <i data-lucide="pie-chart" class="text-brand-accent h-4 w-4"></i> 資產配置比例
+                        <i data-lucide="pie-chart" class="text-brand-accent h-4 w-4"></i> 正資產配置比例
                     </h3>
                     <div class="relative w-full max-w-[250px] aspect-square">
                         <canvas id="allocationChart"></canvas>
@@ -139,28 +150,34 @@
                 </div>
             </div>
             
-            <!-- 右側: 各項資產統整 -->
             <div class="lg:col-span-2 flex flex-col gap-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div class="bg-gradient-to-br from-gray-800 to-gray-900 border border-brand-accent/30 p-5 rounded-2xl shadow-lg relative overflow-hidden group hover:border-brand-accent/60 transition-colors">
                         <div class="absolute right-0 top-0 h-full w-1 bg-brand-accent"></div>
                         <p class="text-sm text-gray-400 font-semibold flex items-center gap-2"><i data-lucide="trending-up" class="h-4 w-4 text-brand-accent"></i> 股票投資</p>
-                        <p class="text-2xl font-bold text-white mt-2" id="ov-stock-val">---</p>
-                        <p class="text-[10px] text-gray-500 mt-1">含股票庫存與交割金</p>
+                        <p class="text-xl font-bold text-white mt-2 truncate" id="ov-stock-val">---</p>
+                        <p class="text-[10px] text-gray-500 mt-1">含庫存與交割金</p>
                     </div>
                     
                     <div class="bg-gradient-to-br from-gray-800 to-gray-900 border border-brand-bank/30 p-5 rounded-2xl shadow-lg relative overflow-hidden group hover:border-brand-bank/60 transition-colors">
                         <div class="absolute right-0 top-0 h-full w-1 bg-brand-bank"></div>
                         <p class="text-sm text-gray-400 font-semibold flex items-center gap-2"><i data-lucide="landmark" class="h-4 w-4 text-brand-bank"></i> 銀行財產</p>
-                        <p class="text-2xl font-bold text-white mt-2" id="ov-bank-val">---</p>
+                        <p class="text-xl font-bold text-white mt-2 truncate" id="ov-bank-val-detail">---</p>
                         <p class="text-[10px] text-gray-500 mt-1">各銀行存款總額</p>
                     </div>
 
                     <div class="bg-gradient-to-br from-gray-800 to-gray-900 border border-brand-fund/30 p-5 rounded-2xl shadow-lg relative overflow-hidden group hover:border-brand-fund/60 transition-colors">
                         <div class="absolute right-0 top-0 h-full w-1 bg-brand-fund"></div>
                         <p class="text-sm text-gray-400 font-semibold flex items-center gap-2"><i data-lucide="shield" class="h-4 w-4 text-brand-fund"></i> 保險與基金</p>
-                        <p class="text-2xl font-bold text-white mt-2" id="ov-fund-val">---</p>
+                        <p class="text-xl font-bold text-white mt-2 truncate" id="ov-fund-val-detail">---</p>
                         <p class="text-[10px] text-gray-500 mt-1">長線手動管理部位</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-gray-800 to-gray-900 border border-brand-debt/30 p-5 rounded-2xl shadow-lg relative overflow-hidden group hover:border-brand-debt/60 transition-colors">
+                        <div class="absolute right-0 top-0 h-full w-1 bg-brand-debt"></div>
+                        <p class="text-sm text-gray-400 font-semibold flex items-center gap-2"><i data-lucide="credit-card" class="h-4 w-4 text-brand-debt"></i> 負債總額</p>
+                        <p class="text-xl font-bold text-brand-debt mt-2 truncate" id="ov-loan-val-detail">---</p>
+                        <p class="text-[10px] text-gray-500 mt-1">待償還貸款與負債</p>
                     </div>
                 </div>
                 
@@ -174,9 +191,6 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 分頁 2: 股票戰術中心                       -->
-    <!-- ========================================== -->
     <div id="tab-stocks" class="tab-content mb-10">
         <div class="mb-4 flex flex-col md:flex-row md:items-center justify-between border-b border-gray-800 pb-3 gap-4">
             <h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="trending-up" class="text-brand-accent h-5 w-5"></i> 股票戰術中心</h2>
@@ -201,7 +215,6 @@
                     <button onclick="openCashModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-600 transition-colors">
                         <i data-lucide="wallet" class="h-3.5 w-3.5 text-brand-accent"></i> 交割金: <span id="stockCashVal" class="font-mono text-white">$---</span>
                     </button>
-                    <!-- NEW: 股票買賣交易按鈕 -->
                     <button onclick="openTradeModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-1 text-xs bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg shadow-lg transition-colors">
                         <i data-lucide="shopping-cart" class="h-3.5 w-3.5"></i> 股票買賣
                     </button>
@@ -214,7 +227,6 @@
         
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <div class="xl:col-span-1 flex flex-col gap-6">
-                <!-- 核心庫存區塊 -->
                 <div class="glass-panel rounded-2xl p-4 md:p-5 shadow-xl flex flex-col">
                     <h3 class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-2"><i data-lucide="briefcase" class="text-brand-accent h-4 w-4"></i> 核心庫存與損益</h3>
                     <div class="overflow-x-auto custom-scrollbar">
@@ -232,7 +244,6 @@
                     </div>
                 </div>
 
-                <!-- 警戒名單 -->
                 <div class="glass-panel rounded-2xl p-4 md:p-5 shadow-xl flex-1">
                     <h3 class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-2"><i data-lucide="radar" class="text-[#ef4444] h-4 w-4"></i> 獵人警戒名單</h3>
                     <div id="watchlistContainer" class="space-y-2"></div>
@@ -240,7 +251,6 @@
             </div>
 
             <div class="xl:col-span-2 flex flex-col gap-6">
-                <!-- 專業 K 線圖表 -->
                 <div class="glass-panel rounded-2xl p-4 md:p-5 shadow-xl flex flex-col min-h-[450px]">
                     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4 w-full">
                         <div class="w-full lg:w-1/3">
@@ -271,7 +281,6 @@
                     <div id="tvChartContainer" class="flex-1 w-full relative min-h-[350px]"></div>
                 </div>
 
-                <!-- 股票交易歷史紀錄 -->
                 <div class="glass-panel rounded-2xl p-4 md:p-5 shadow-xl flex-1 max-h-[350px] flex flex-col">
                     <h3 class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-2"><i data-lucide="history" class="text-brand-accent h-4 w-4"></i> 股票交易歷史紀錄</h3>
                     <div class="overflow-y-auto custom-scrollbar pr-2 flex-1">
@@ -296,9 +305,6 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 分頁 3: 銀行與記帳中心                     -->
-    <!-- ========================================== -->
     <div id="tab-banks" class="tab-content mb-10">
         <div class="mb-4 flex items-center justify-between border-b border-gray-800 pb-2">
             <h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="landmark" class="text-brand-bank h-5 w-5"></i> 銀行與記帳中心</h2>
@@ -308,12 +314,9 @@
         </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            <!-- 左欄: 銀行與收支統計 -->
             <div class="flex flex-col gap-6">
-                <!-- 銀行列表 -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="bankListContainer"></div>
                 
-                <!-- 收支統計中心 (日、月、年) -->
                 <div class="bg-gray-800/80 p-5 rounded-2xl shadow-xl border border-gray-700">
                     <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
                         <i data-lucide="bar-chart" class="text-blue-400 h-4 w-4"></i> 收支統計儀表板
@@ -327,6 +330,7 @@
                             <p class="text-xs text-gray-400 mb-1 font-medium">本日總支出</p>
                             <p class="text-lg font-bold text-[#ef4444] font-mono" id="stat-d-exp">$0</p>
                         </div>
+                        
                         <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-75 hover:border-gray-600 transition-colors md:row-span-1">
                             <p class="text-xs text-gray-400 mb-1 font-medium">本月總收入</p>
                             <p class="text-lg font-bold text-brand-bank font-mono" id="stat-m-inc">$0</p>
@@ -335,6 +339,7 @@
                             <p class="text-xs text-gray-400 mb-1 font-medium">本月總支出</p>
                             <p class="text-lg font-bold text-[#ef4444] font-mono" id="stat-m-exp">$0</p>
                         </div>
+                        
                         <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-75 hover:border-gray-600 transition-colors">
                             <p class="text-xs text-gray-400 mb-1 font-medium">本年總收入</p>
                             <p class="text-lg font-bold text-brand-bank font-mono" id="stat-y-inc">$0</p>
@@ -347,7 +352,6 @@
                 </div>
             </div>
             
-            <!-- 右欄: 快速記帳與明細 -->
             <div class="flex flex-col gap-4">
                 <div class="bg-gradient-to-br from-gray-800 to-gray-850 p-5 rounded-2xl border border-gray-700 shadow-xl">
                     <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="pen-tool" class="text-brand-bank h-4 w-4"></i> 快速記帳 (連動帳戶餘額)</h3>
@@ -378,9 +382,6 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 分頁 4: 保險與基金部位                     -->
-    <!-- ========================================== -->
     <div id="tab-funds" class="tab-content mb-10">
         <div class="mb-4 flex items-center justify-between border-b border-gray-800 pb-2">
             <h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="shield" class="text-brand-fund h-5 w-5"></i> 保險與基金部位</h2>
@@ -392,9 +393,17 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" id="fundListContainer"></div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 彈出視窗 (Modals)                          -->
-    <!-- ========================================== -->
+    <div id="tab-loans" class="tab-content mb-10">
+        <div class="mb-4 flex items-center justify-between border-b border-gray-800 pb-2">
+            <h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="credit-card" class="text-[#ef4444] h-5 w-5"></i> 貸款與負債管理</h2>
+            <button onclick="openLoanModal()" class="flex items-center gap-1 text-xs bg-gray-800 hover:bg-gray-700 border border-gray-600 text-[#ef4444] px-3 py-1.5 rounded-lg transition-colors">
+                <i data-lucide="plus-circle" class="h-3.5 w-3.5"></i> 新增貸款
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" id="loanListContainer"></div>
+    </div>
+
     
     <!-- 股票買賣 (記帳) Modal -->
     <div id="tradeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -430,12 +439,12 @@
     <!-- 股票新增/編輯 Modal -->
     <div id="stockAddModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md p-5 shadow-2xl">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2" id="sModalTitle"><i data-lucide="crosshair" class="text-brand-accent w-5 h-5"></i> 設定警戒目標 (純記錄)</h3>
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2" id="sModalTitle"><i data-lucide="crosshair" class="text-brand-accent w-5 h-5"></i> 設定警戒目標</h3>
             <input type="hidden" id="sModalIndex" value="-1">
             <div class="space-y-3">
                 <select id="sModalType" class="w-full bg-gray-800 p-2.5 rounded-lg text-white border border-gray-600 outline-none" onchange="toggleStockModalFields()">
+                    <option value="inventory">核心庫存 (建立實單)</option>
                     <option value="watchlist">警戒名單 (觀測與哨兵)</option>
-                    <option value="inventory">強制覆寫庫存(不扣交割金)</option>
                 </select>
                 <div class="flex gap-2">
                     <input type="text" id="sModalId" placeholder="代號 (例: 2330)" class="flex-1 bg-gray-800 p-2.5 rounded-lg text-white border border-gray-600 outline-none">
@@ -489,6 +498,26 @@
         </div>
     </div>
 
+    <!-- 貸款新增/編輯 Modal -->
+    <div id="loanModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-[#ef4444]/50 rounded-2xl w-full max-w-sm p-5 shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-4" id="loanModalTitle"><i data-lucide="credit-card" class="inline w-5 h-5 text-[#ef4444] mr-1"></i>新增貸款</h3>
+            <input type="hidden" id="loanModalIndex" value="-1">
+            <div class="space-y-3">
+                <input type="text" id="loanName" placeholder="貸款名稱 (如: 房屋貸款、信用貸款)" class="w-full bg-gray-800 p-2.5 rounded-lg text-white border border-gray-600 outline-none">
+                <input type="number" id="loanAmount" placeholder="剩餘借款金額 (NT$)" class="w-full bg-gray-800 p-2.5 rounded-lg text-white border border-gray-600 outline-none font-mono font-bold">
+                <div class="relative">
+                    <input type="number" id="loanRate" placeholder="年利率" step="0.01" class="w-full bg-gray-800 p-2.5 rounded-lg text-white border border-gray-600 outline-none font-mono pr-8">
+                    <span class="absolute right-3 top-2.5 text-gray-400">%</span>
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end gap-2">
+                <button onclick="closeModal('loanModal')" class="px-4 py-2 text-gray-400 hover:text-white">取消</button>
+                <button onclick="submitLoan()" class="px-5 py-2 bg-[#ef4444] hover:bg-red-600 text-white rounded-lg font-bold shadow-lg">儲存負債</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 股票現金編輯 Modal -->
     <div id="stockCashModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl">
@@ -515,9 +544,6 @@
     </div>
 
     <script>
-        // ==========================================
-        // Firebase 與 API 核心設定
-        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCvO_F80lJe9u42UfrSKQC_bAs9w3aCmx8",
             authDomain: "stock-analysis-3a851.firebaseapp.com",
@@ -531,28 +557,6 @@
         let db = null;
         let useFirebase = false;
 
-        // ==========================================
-        // 核心通知功能 (Hoisted)
-        // ==========================================
-        function showToast(msg, icon = 'check-circle', color = 'text-brand-accent') {
-            const t = document.getElementById('toast');
-            if(!t) return;
-            document.getElementById('toastMsg').innerText = msg;
-            try {
-                const iconEl = document.getElementById('toastIcon');
-                if(iconEl) {
-                    iconEl.setAttribute('data-lucide', icon);
-                    iconEl.className = `${color} h-5 w-5`;
-                    lucide.createIcons({root: t});
-                }
-            } catch(e){}
-            t.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 2500);
-        }
-
-        // ==========================================
-        // 資料庫與狀態管理
-        // ==========================================
         const defaultState = {
             inventory: [
                 { id: "0050", name: "台灣50", cost: 57.18, price: 97.30, shares: 1706 },
@@ -573,6 +577,10 @@
                 { id: "f1", name: "南山人壽儲蓄險", amount: 300000 },
                 { id: "f2", name: "安聯收益成長基金", amount: 152000 }
             ],
+            loans: [
+                { id: "l1", name: "房屋貸款", amount: 5000000, rate: 2.15 },
+                { id: "l2", name: "信用貸款", amount: 800000, rate: 2.88 }
+            ],
             transactions: [
                 { id: "tx1", date: "2026/05/29", type: "expense", amount: 1500, note: "週末聚餐", bankId: "b1", bankName: "台新 Richart", bankLinked: false }
             ]
@@ -586,10 +594,12 @@
                     firebase.initializeApp(firebaseConfig);
                     db = firebase.firestore();
                     useFirebase = true;
-                    document.getElementById('cloudStatusBadge').innerText = "Firebase 已連線";
-                    document.getElementById('cloudStatusBadge').className = "text-xs bg-brand-accent/20 text-brand-accent px-2 py-1 rounded-full ml-2";
+                    if(document.getElementById('cloudStatusBadge')) {
+                        document.getElementById('cloudStatusBadge').innerText = "Firebase 已連線";
+                        document.getElementById('cloudStatusBadge').className = "text-xs bg-brand-accent/20 text-brand-accent px-2 py-1 rounded-full ml-2";
+                    }
                     
-                    const docRef = db.collection("hunterData").doc("wealthPortfolio_v15");
+                    const docRef = db.collection("hunterData").doc("wealthPortfolio_v16");
                     const doc = await docRef.get();
                     if (doc.exists) {
                         appState = doc.data();
@@ -597,6 +607,7 @@
                         if(!appState.stockHistory) appState.stockHistory = [];
                         if(!appState.banks) appState.banks = defaultState.banks;
                         if(!appState.funds) appState.funds = defaultState.funds;
+                        if(!appState.loans) appState.loans = [];
                         if(!appState.transactions) appState.transactions = defaultState.transactions;
                         showToast("已從 Firebase 同步最新資產配置");
                     } else {
@@ -605,15 +616,16 @@
                 }
             } catch (error) {
                 console.warn("Firebase 連線失敗:", error);
-                document.getElementById('cloudStatusBadge').innerText = "本機模式";
+                if(document.getElementById('cloudStatusBadge')) document.getElementById('cloudStatusBadge').innerText = "本機模式";
             }
         };
 
         try {
-            const saved = localStorage.getItem('hunterState_v15');
+            const saved = localStorage.getItem('hunterState_v16');
             appState = saved ? JSON.parse(saved) : defaultState;
             if(!appState.banks) appState.banks = defaultState.banks;
             if(!appState.funds) appState.funds = defaultState.funds;
+            if(!appState.loans) appState.loans = defaultState.loans;
             if(!appState.transactions) appState.transactions = defaultState.transactions;
             if(!appState.stockHistory) appState.stockHistory = [];
             if(appState.stockCash === undefined) appState.stockCash = 9300;
@@ -625,14 +637,13 @@
 
         const saveState = async () => {
             if (useFirebase && db) {
-                try { await db.collection("hunterData").doc("wealthPortfolio_v15").set(appState); } 
+                try { await db.collection("hunterData").doc("wealthPortfolio_v16").set(appState); } 
                 catch (e) { console.error("寫入 Firebase 失敗", e); }
             }
-            localStorage.setItem('hunterState_v15', JSON.stringify(appState));
+            localStorage.setItem('hunterState_v16', JSON.stringify(appState));
             renderAll();
         };
 
-        // 圖表共用變數
         let chart = null, candleSeries = null, lineSeries = null;
         let isCandleMode = false; 
         let currentStock = "0000", currentTimeframe = "1D", taiexCurrentValue = 43644.40;
@@ -646,9 +657,6 @@
             "6116": { vol: 0.035, trend: 0.08 }, "2330": { vol: 0.015, trend: 0.03 }, "1802": { vol: 0.025, trend: -0.05 }
         };
 
-        // ==========================================
-        // 登入與系統啟動邏輯
-        // ==========================================
         const startApp = async () => {
             await initFirebase();
             setTimeout(() => {
@@ -662,7 +670,9 @@
 
             setInterval(() => {
                 const now = new Date();
-                document.getElementById('currentTimeDisplay').innerText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} (連線中)`;
+                if(document.getElementById('currentTimeDisplay')) {
+                    document.getElementById('currentTimeDisplay').innerText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} (連線中)`;
+                }
             }, 1000);
         };
 
@@ -710,15 +720,18 @@
             }
         };
 
-        // ==========================================
-        // 渲染引擎 (Renderers)
-        // ==========================================
+        const safeSetText = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        };
+
         const renderAll = () => {
             renderTopMetrics();
             renderStocks();
             if (typeof renderStockHistory === 'function') renderStockHistory();
             renderBanks();
             renderFunds();
+            if (typeof renderLoans === 'function') renderLoans();
             renderTransactions();
             renderTransactionStats();
             try { lucide.createIcons(); } catch(e) {}
@@ -727,7 +740,6 @@
         const renderTopMetrics = () => {
             let stockTotal = appState.stockCash;
             appState.inventory.forEach(i => stockTotal += i.price * i.shares);
-            document.getElementById('stockCashVal').innerText = `$${appState.stockCash.toLocaleString()}`;
             
             let bankTotal = 0;
             appState.banks.forEach(b => bankTotal += b.balance);
@@ -735,39 +747,56 @@
             let fundTotal = 0;
             appState.funds.forEach(f => fundTotal += f.amount);
 
-            const netWorth = stockTotal + bankTotal + fundTotal;
+            let loanTotal = 0;
+            appState.loans.forEach(l => loanTotal += l.amount);
 
-            document.getElementById('taiexValueDisplay').innerText = taiexCurrentValue.toLocaleString(undefined, {minimumFractionDigits: 2});
-            document.getElementById('ov-stock-val').innerText = `$${stockTotal.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
-            document.getElementById('ov-bank-val').innerText = `$${bankTotal.toLocaleString()}`;
-            document.getElementById('ov-fund-val').innerText = `$${fundTotal.toLocaleString()}`;
-            document.getElementById('globalTotalAsset').innerText = `$${netWorth.toLocaleString()}`;
+            const netWorth = stockTotal + bankTotal + fundTotal - loanTotal;
 
+            // Using Bulletproof DOM update function
+            safeSetText('stockCashVal', `$${appState.stockCash.toLocaleString()}`);
+            safeSetText('taiexValueDisplay', taiexCurrentValue.toLocaleString(undefined, {minimumFractionDigits: 2}));
+            
+            // Header
+            safeSetText('head-stock-val', `$${stockTotal.toLocaleString(undefined, {maximumFractionDigits: 0})}`);
+            safeSetText('head-safe-val', `$${(bankTotal+fundTotal).toLocaleString(undefined, {maximumFractionDigits: 0})}`);
+            safeSetText('ov-loan-val', `-$${loanTotal.toLocaleString()}`);
+            safeSetText('globalTotalAsset', `$${netWorth.toLocaleString()}`);
+
+            // Overview Tab
+            safeSetText('ov-stock-val', `$${stockTotal.toLocaleString(undefined, {maximumFractionDigits: 0})}`);
+            safeSetText('ov-bank-val-detail', `$${bankTotal.toLocaleString()}`);
+            safeSetText('ov-fund-val-detail', `$${fundTotal.toLocaleString()}`);
+            safeSetText('ov-loan-val-detail', `-$${loanTotal.toLocaleString()}`);
+
+            // Update Chart
             if(donutChartInstance && donutChartInstance.data) {
                 donutChartInstance.data.datasets[0].data = [stockTotal, fundTotal, bankTotal];
                 donutChartInstance.update();
             }
 
+            // Recent TX
             const recentTxContainer = document.getElementById('ov-recent-tx');
-            if(appState.transactions.length === 0) {
-                recentTxContainer.innerHTML = '<p class="text-xs text-gray-500 py-4 text-center border border-dashed border-gray-700 rounded-lg">尚無記帳紀錄</p>';
-            } else {
-                const recentTxs = [...appState.transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-                recentTxContainer.innerHTML = recentTxs.map(tx => {
-                    const isExp = tx.type === 'expense';
-                    const color = isExp ? 'text-red-400' : 'text-brand-bank';
-                    const isHistorical = tx.bankLinked === false;
-                    return `<div class="flex justify-between items-center border-b border-gray-700/50 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
-                        <div>
-                            <p class="text-sm text-gray-200 font-semibold flex items-center gap-2">
-                                ${tx.note}
-                                ${isHistorical ? '<span class="text-[10px] bg-gray-600/50 text-gray-400 px-1.5 py-0.5 rounded border border-gray-650">歷史補登</span>' : ''}
-                            </p>
-                            <p class="text-[10px] text-gray-500 mt-0.5">${tx.date} | ${tx.bankName}</p>
-                        </div>
-                        <p class="text-sm font-bold ${color} font-mono">${isExp ? '-' : '+'}$${tx.amount.toLocaleString()}</p>
-                    </div>`;
-                }).join('');
+            if(recentTxContainer) {
+                if(appState.transactions.length === 0) {
+                    recentTxContainer.innerHTML = '<p class="text-xs text-gray-500 py-4 text-center border border-dashed border-gray-700 rounded-lg">尚無記帳紀錄</p>';
+                } else {
+                    const recentTxs = [...appState.transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+                    recentTxContainer.innerHTML = recentTxs.map(tx => {
+                        const isExp = tx.type === 'expense';
+                        const color = isExp ? 'text-red-400' : 'text-brand-bank';
+                        const isHistorical = tx.bankLinked === false;
+                        return `<div class="flex justify-between items-center border-b border-gray-700/50 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
+                            <div>
+                                <p class="text-sm text-gray-200 font-semibold flex items-center gap-2">
+                                    ${tx.note}
+                                    ${isHistorical ? '<span class="text-[10px] bg-gray-600/50 text-gray-400 px-1.5 py-0.5 rounded border border-gray-650">歷史補登</span>' : ''}
+                                </p>
+                                <p class="text-[10px] text-gray-500 mt-0.5">${tx.date} | ${tx.bankName}</p>
+                            </div>
+                            <p class="text-sm font-bold ${color} font-mono">${isExp ? '-' : '+'}$${tx.amount.toLocaleString()}</p>
+                        </div>`;
+                    }).join('');
+                }
             }
         };
 
@@ -792,6 +821,8 @@
 
         const renderStocks = () => {
             const tbody = document.getElementById('inventoryList');
+            if(!tbody) return;
+            
             let totalStockVal = appState.stockCash;
             let totalCost = 0;
             let totalValue = 0;
@@ -802,12 +833,10 @@
                 totalValue += i.price * i.shares;
             });
 
-            const elTotalCost = document.getElementById('stockTotalCost');
-            const elTotalValue = document.getElementById('stockTotalValue');
+            safeSetText('stockTotalCost', `$${totalCost.toLocaleString(undefined, {maximumFractionDigits: 0})}`);
+            safeSetText('stockTotalValue', `$${totalValue.toLocaleString(undefined, {maximumFractionDigits: 0})}`);
+            
             const elUnrealizedPL = document.getElementById('stockUnrealizedPL');
-
-            if(elTotalCost) elTotalCost.innerText = `$${totalCost.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
-            if(elTotalValue) elTotalValue.innerText = `$${totalValue.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
             if(elUnrealizedPL) {
                 const unrealizedPL = totalValue - totalCost;
                 elUnrealizedPL.innerText = `${unrealizedPL >= 0 ? '+' : ''}$${unrealizedPL.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
@@ -836,34 +865,36 @@
             }).join('');
 
             const wList = document.getElementById('watchlistContainer');
-            if(appState.watchlist.length === 0) {
-                wList.innerHTML = '<p class="text-xs text-gray-500 py-2">無資料</p>';
-            } else {
-                wList.innerHTML = appState.watchlist.map((item, idx) => {
-                    const isObs = item.alert === 0;
-                    let statusText = "觀測中";
-                    if(item.label === 'danger') statusText = "極度接近";
-                    if(item.label === 'warning') statusText = "高度警戒";
-                    if(item.label === 'success') statusText = "安全觀望";
-                    
-                    return `
-                    <div class="bg-gray-800/60 p-2.5 rounded-lg border-l-4 border-brand-${item.label} flex justify-between items-center group hover:border-brand-${item.label}/60 transition-colors">
-                        <div onclick="selectStock('${item.id}')" class="cursor-pointer">
-                            <p class="text-white font-bold text-sm hover:text-brand-accent transition-colors">${item.id} ${item.name}</p>
-                            <p class="text-[10px] text-gray-400 mt-0.5">${isObs ? '純觀測' : `哨兵線 < ${item.alert}`}</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div class="text-right">
-                                <span class="text-[10px] bg-brand-${item.label}/20 text-brand-${item.label} px-1.5 py-0.5 rounded mr-1">${statusText}</span>
-                                <span class="text-white font-mono font-bold">${item.price.toFixed(2)}</span>
+            if(wList) {
+                if(appState.watchlist.length === 0) {
+                    wList.innerHTML = '<p class="text-xs text-gray-500 py-2">無資料</p>';
+                } else {
+                    wList.innerHTML = appState.watchlist.map((item, idx) => {
+                        const isObs = item.alert === 0;
+                        let statusText = "觀測中";
+                        if(item.label === 'danger') statusText = "極度接近";
+                        if(item.label === 'warning') statusText = "高度警戒";
+                        if(item.label === 'success') statusText = "安全觀望";
+                        
+                        return `
+                        <div class="bg-gray-800/60 p-2.5 rounded-lg border-l-4 border-brand-${item.label} flex justify-between items-center group hover:border-brand-${item.label}/60 transition-colors">
+                            <div onclick="selectStock('${item.id}')" class="cursor-pointer">
+                                <p class="text-white font-bold text-sm hover:text-brand-accent transition-colors">${item.id} ${item.name}</p>
+                                <p class="text-[10px] text-gray-400 mt-0.5">${isObs ? '純觀測' : `哨兵線 < ${item.alert}`}</p>
                             </div>
-                            <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100">
-                                <button onclick="openTradeModal('${item.id}', '${item.name}', ${item.price})" class="text-green-500 hover:text-green-400"><i data-lucide="shopping-cart" class="w-3 h-3"></i></button>
-                                <button onclick="requestDelete('watchlist', ${idx})" class="text-gray-400 hover:text-[#ef4444]"><i data-lucide="x" class="w-3 h-3"></i></button>
+                            <div class="flex items-center gap-3">
+                                <div class="text-right">
+                                    <span class="text-[10px] bg-brand-${item.label}/20 text-brand-${item.label} px-1.5 py-0.5 rounded mr-1">${statusText}</span>
+                                    <span class="text-white font-mono font-bold">${item.price.toFixed(2)}</span>
+                                </div>
+                                <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100">
+                                    <button onclick="openTradeModal('${item.id}', '${item.name}', ${item.price})" class="text-green-500 hover:text-green-400"><i data-lucide="shopping-cart" class="w-3 h-3"></i></button>
+                                    <button onclick="requestDelete('watchlist', ${idx})" class="text-gray-400 hover:text-[#ef4444]"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `}).join('');
+                    `}).join('');
+                }
             }
             updateSelectorOptions();
         };
@@ -915,6 +946,7 @@
 
         const renderBanks = () => {
             const container = document.getElementById('bankListContainer');
+            if(!container) return;
             if(appState.banks.length === 0) {
                 container.innerHTML = `<p class="text-sm text-gray-500">尚無銀行帳戶</p>`;
             } else {
@@ -931,11 +963,13 @@
                     </div>
                 `).join('');
             }
-            document.getElementById('txBank').innerHTML = appState.banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+            const txBankEl = document.getElementById('txBank');
+            if(txBankEl) txBankEl.innerHTML = appState.banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
         };
 
         const renderTransactions = () => {
             const container = document.getElementById('txListContainer');
+            if(!container) return;
             if(appState.transactions.length === 0) {
                 container.innerHTML = '<p class="text-gray-500 text-xs text-center py-4 border border-dashed border-gray-700 rounded-lg">尚無近期記帳紀錄</p>';
                 return;
@@ -1003,12 +1037,12 @@
                 }
             });
 
-            document.getElementById('stat-d-inc').innerText = `$${dInc.toLocaleString()}`;
-            document.getElementById('stat-d-exp').innerText = `$${dExp.toLocaleString()}`;
-            document.getElementById('stat-m-inc').innerText = `$${mInc.toLocaleString()}`;
-            document.getElementById('stat-m-exp').innerText = `$${mExp.toLocaleString()}`;
-            document.getElementById('stat-y-inc').innerText = `$${yInc.toLocaleString()}`;
-            document.getElementById('stat-y-exp').innerText = `$${yExp.toLocaleString()}`;
+            safeSetText('stat-d-inc', `$${dInc.toLocaleString()}`);
+            safeSetText('stat-d-exp', `$${dExp.toLocaleString()}`);
+            safeSetText('stat-m-inc', `$${mInc.toLocaleString()}`);
+            safeSetText('stat-m-exp', `$${mExp.toLocaleString()}`);
+            safeSetText('stat-y-inc', `$${yInc.toLocaleString()}`);
+            safeSetText('stat-y-exp', `$${yExp.toLocaleString()}`);
         };
 
         const renderFunds = () => {
@@ -1032,11 +1066,28 @@
             `).join('');
         };
 
-        // ==========================================
-        // 互動邏輯與記帳處理
-        // ==========================================
-        
-        // 股票專用: 買賣交易提交
+        const renderLoans = () => {
+            const container = document.getElementById('loanListContainer');
+            if(!container) return;
+            if(appState.loans.length === 0) {
+                 container.innerHTML = `<div class="col-span-full text-center py-8 text-gray-500 border border-dashed border-gray-700 rounded-xl">目前尚無貸款紀錄</div>`;
+                 return;
+            }
+            container.innerHTML = appState.loans.map((l, idx) => `
+                <div class="glass-panel p-4 rounded-xl shadow-lg border-t-2 border-t-[#ef4444] group relative">
+                    <div class="flex justify-between items-start mb-3">
+                        <p class="text-sm text-gray-300 font-semibold pr-4 leading-tight">${l.name}</p>
+                        <div class="absolute top-3 right-3 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-850 p-1 rounded-lg border border-gray-700">
+                            <button onclick="openLoanModal(${idx})" class="text-gray-400 hover:text-white p-1"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="requestDelete('loans', ${idx})" class="text-gray-400 hover:text-[#ef4444] p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                    <p class="text-xl font-bold text-[#ef4444] font-mono mb-1">-$${l.amount.toLocaleString()}</p>
+                    <p class="text-xs text-gray-500">年利率: <span class="text-gray-300 font-mono">${l.rate}%</span></p>
+                </div>
+            `).join('');
+        };
+
         const submitTrade = (e) => {
             e.preventDefault();
             const dateInputVal = document.getElementById('tmDate').value; 
@@ -1098,7 +1149,6 @@
             updateChartData();
         };
 
-        // 銀行專用: 收支記帳提交
         const submitTransaction = (e) => {
             e.preventDefault();
             const dateInputVal = document.getElementById('txDate').value; 
@@ -1147,10 +1197,6 @@
             }
         };
 
-        // ==========================================
-        // Modal 控制中心 
-        // ==========================================
-        
         const openTradeModal = (symbol = '', name = '', price = '') => {
             document.getElementById('tmId').value = symbol;
             document.getElementById('tmName').value = name;
@@ -1181,6 +1227,24 @@
             document.getElementById('simpleAssetModal').classList.remove('hidden');
         };
         
+        const openLoanModal = (idx = -1) => {
+            document.getElementById('loanModalIndex').value = idx;
+            if(idx > -1) {
+                const l = appState.loans[idx];
+                document.getElementById('loanModalTitle').innerHTML = '<i data-lucide="edit" class="inline w-5 h-5 text-[#ef4444] mr-1"></i>編輯貸款參數';
+                document.getElementById('loanName').value = l.name;
+                document.getElementById('loanAmount').value = l.amount;
+                document.getElementById('loanRate').value = l.rate;
+            } else {
+                document.getElementById('loanModalTitle').innerHTML = '<i data-lucide="credit-card" class="inline w-5 h-5 text-[#ef4444] mr-1"></i>新增貸款';
+                document.getElementById('loanName').value = '';
+                document.getElementById('loanAmount').value = '';
+                document.getElementById('loanRate').value = '';
+            }
+            document.getElementById('loanModal').classList.remove('hidden');
+            try { lucide.createIcons(); } catch(e){}
+        };
+
         const closeModal = (id) => { 
             document.getElementById(id).classList.add('hidden'); 
             itemToDelete = null; 
@@ -1209,6 +1273,25 @@
             showToast(`${type === 'banks' ? '帳戶' : '部位'}更新成功`);
         };
 
+        const submitLoan = () => {
+            const idx = parseInt(document.getElementById('loanModalIndex').value);
+            const name = document.getElementById('loanName').value.trim();
+            const amount = parseFloat(document.getElementById('loanAmount').value);
+            const rate = parseFloat(document.getElementById('loanRate').value) || 0;
+
+            if(!name || isNaN(amount) || amount < 0) return showToast('請填寫完整貸款名稱與金額', 'alert-triangle', 'text-[#ef4444]');
+
+            if(idx > -1) {
+                appState.loans[idx] = { ...appState.loans[idx], name, amount, rate };
+            } else {
+                appState.loans.push({ id: 'l'+Date.now(), name, amount, rate });
+            }
+
+            saveState();
+            closeModal('loanModal');
+            showToast('負債資料已更新', 'check-circle', 'text-[#ef4444]');
+        };
+
         const openCashModal = () => {
             document.getElementById('stockCashInput').value = appState.stockCash;
             document.getElementById('stockCashModal').classList.remove('hidden');
@@ -1221,10 +1304,10 @@
         };
 
         const openStockAddModal = () => {
-            document.getElementById('sModalTitle').innerHTML = '<i data-lucide="crosshair" class="text-brand-accent w-5 h-5"></i> 新增監控目標 (純記錄)';
+            document.getElementById('sModalTitle').innerHTML = '<i data-lucide="crosshair" class="text-brand-accent w-5 h-5"></i> 設定警戒目標 (純記錄)';
             document.getElementById('sModalIndex').value = "-1";
             document.getElementById('sModalType').disabled = false;
-            document.getElementById('sModalType').value = 'watchlist'; // 預設為警戒名單
+            document.getElementById('sModalType').value = 'watchlist'; 
             document.querySelectorAll('#stockAddModal input').forEach(i => i.value = '');
             toggleStockModalFields();
             document.getElementById('stockAddModal').classList.remove('hidden');
@@ -1347,9 +1430,6 @@
         const closeConfirmModal = () => { document.getElementById('confirmModal').classList.add('hidden'); confirmAction = null; };
         const executeConfirm = () => { if(confirmAction) confirmAction(); };
 
-        // ==========================================
-        // 圖表引擎 
-        // ==========================================
         const initTradingViewChart = () => {
             const container = document.getElementById('tvChartContainer');
             if (typeof LightweightCharts === 'undefined' || !container || container.clientWidth === 0) return;
@@ -1441,28 +1521,33 @@
             document.getElementById('statPrice').innerText = targetPrice.toFixed(2);
         };
 
-        document.getElementById('stockSelector').addEventListener('change', (e) => { currentStock = e.target.value; updateChartData(); });
+        const selectStock = (id) => { currentStock = id; document.getElementById('stockSelector').value = id; updateChartData(); };
+        const selEl = document.getElementById('stockSelector');
+        if(selEl) selEl.addEventListener('change', (e) => selectStock(e.target.value));
 
-        document.getElementById('toggleChartTypeBtn').addEventListener('click', (e) => {
-            isCandleMode = !isCandleMode;
-            if (!isCandleMode) {
-                currentTimeframe = '1D'; 
-                document.querySelectorAll('.tf-btn').forEach(b => {
-                    b.classList.remove('bg-brand-accent', 'text-white', 'shadow');
-                    b.classList.add('text-gray-400');
-                    if(b.dataset.tf === '1D') {
-                        b.classList.remove('text-gray-400');
-                        b.classList.add('bg-brand-accent', 'text-white', 'shadow');
-                    }
-                });
-            }
-            candleSeries.applyOptions({ visible: isCandleMode });
-            lineSeries.applyOptions({ visible: !isCandleMode });
-            document.getElementById('chartIconLine').classList.toggle('hidden', isCandleMode);
-            document.getElementById('chartIconCandle').classList.toggle('hidden', !isCandleMode);
-            document.getElementById('chartToggleText').innerText = isCandleMode ? '切換為曲線' : '切換為 K線';
-            updateChartData();
-        });
+        const toggleBtn = document.getElementById('toggleChartTypeBtn');
+        if(toggleBtn) {
+            toggleBtn.addEventListener('click', (e) => {
+                isCandleMode = !isCandleMode;
+                if (!isCandleMode) {
+                    currentTimeframe = '1D'; 
+                    document.querySelectorAll('.tf-btn').forEach(b => {
+                        b.classList.remove('bg-brand-accent', 'text-white', 'shadow');
+                        b.classList.add('text-gray-400');
+                        if(b.dataset.tf === '1D') {
+                            b.classList.remove('text-gray-400');
+                            b.classList.add('bg-brand-accent', 'text-white', 'shadow');
+                        }
+                    });
+                }
+                candleSeries.applyOptions({ visible: isCandleMode });
+                lineSeries.applyOptions({ visible: !isCandleMode });
+                document.getElementById('chartIconLine').classList.toggle('hidden', isCandleMode);
+                document.getElementById('chartIconCandle').classList.toggle('hidden', !isCandleMode);
+                document.getElementById('chartToggleText').innerText = isCandleMode ? '切換為曲線' : '切換為 K線';
+                updateChartData();
+            });
+        }
 
         document.querySelectorAll('.tf-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1482,9 +1567,6 @@
             });
         });
 
-        // ==========================================
-        // API 聯網搜尋引擎架構
-        // ==========================================
         const fetchWithRetry = async (url, options, retries = 5, delay = 1000) => {
             for (let i = 0; i < retries; i++) {
                 try {
