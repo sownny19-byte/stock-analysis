@@ -192,36 +192,54 @@
     </div>
 
     <div id="tab-stocks" class="tab-content mb-10">
-        <div class="mb-4 flex flex-col md:flex-row md:items-center justify-between border-b border-gray-800 pb-3 gap-4">
-            <h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="trending-up" class="text-brand-accent h-5 w-5"></i> 股票戰術中心</h2>
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="flex items-center gap-3 bg-gray-800/80 px-3 py-1.5 rounded-lg border border-gray-700 shadow-inner w-full sm:w-auto justify-between sm:justify-start">
-                    <div>
-                        <p class="text-[10px] text-gray-400">總投資成本</p>
-                        <p class="text-sm font-bold text-white font-mono" id="stockTotalCost">$0</p>
+        <div class="mb-4 flex flex-col gap-3">
+            <!-- 第一行：標題、未實現損益相關、交割金與新增按鈕 -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-800 pb-3 gap-4">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="trending-up" class="text-brand-accent h-5 w-5"></i> 股票戰術中心</h2>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-3 bg-gray-800/80 px-3 py-1.5 rounded-lg border border-gray-700 shadow-inner w-full sm:w-auto justify-between sm:justify-start overflow-x-auto custom-scrollbar">
+                        <div>
+                            <p class="text-[10px] text-gray-400 whitespace-nowrap">總投資成本</p>
+                            <p class="text-sm font-bold text-white font-mono" id="stockTotalCost">$0</p>
+                        </div>
+                        <div class="w-px h-6 bg-gray-600 shrink-0"></div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 whitespace-nowrap">損益後現值</p>
+                            <p class="text-sm font-bold text-brand-accent font-mono" id="stockTotalValue">$0</p>
+                        </div>
+                        <div class="w-px h-6 bg-gray-600 shrink-0"></div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 whitespace-nowrap">未實現損益</p>
+                            <p class="text-sm font-bold font-mono" id="stockUnrealizedPL">$0</p>
+                        </div>
                     </div>
-                    <div class="w-px h-6 bg-gray-600"></div>
-                    <div>
-                        <p class="text-[10px] text-gray-400">損益後現值</p>
-                        <p class="text-sm font-bold text-brand-accent font-mono" id="stockTotalValue">$0</p>
-                    </div>
-                    <div class="w-px h-6 bg-gray-600"></div>
-                    <div>
-                        <p class="text-[10px] text-gray-400">未實現損益</p>
-                        <p class="text-sm font-bold font-mono" id="stockUnrealizedPL">$0</p>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="openCashModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-600 transition-colors">
+                            <i data-lucide="wallet" class="h-3.5 w-3.5 text-brand-accent"></i> 交割金: <span id="stockCashVal" class="font-mono text-white">$---</span>
+                        </button>
+                        <button onclick="openStockAddModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-1 text-xs bg-brand-accent hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-lg transition-colors">
+                            <i data-lucide="plus" class="h-3.5 w-3.5"></i> 新增警戒
+                        </button>
                     </div>
                 </div>
-                <div class="flex gap-2 w-full sm:w-auto">
-                    <button onclick="openCashModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-600 transition-colors">
-                        <i data-lucide="wallet" class="h-3.5 w-3.5 text-brand-accent"></i> 交割金: <span id="stockCashVal" class="font-mono text-white">$---</span>
-                    </button>
-                    <button onclick="openTradeModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-1 text-xs bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg shadow-lg transition-colors">
-                        <i data-lucide="shopping-cart" class="h-3.5 w-3.5"></i> 股票買賣
-                    </button>
-                    <button onclick="openStockAddModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-1 text-xs bg-brand-accent hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-lg transition-colors">
-                        <i data-lucide="plus" class="h-3.5 w-3.5"></i> 新增警戒
-                    </button>
+            </div>
+            
+            <!-- 第二行：本月損益、本年損益 (可編輯)、股票買賣按鈕 -->
+            <div class="flex flex-col sm:flex-row justify-end items-center gap-3">
+                <div class="flex items-center gap-4 bg-gray-800/80 px-4 py-2 rounded-lg border border-gray-700 shadow-inner w-full sm:w-auto justify-between sm:justify-start">
+                    <div class="group relative cursor-pointer" onclick="openPLModal()" title="點擊校正損益">
+                        <p class="text-[10px] text-gray-400 whitespace-nowrap flex items-center gap-1">本月實現損益 <i data-lucide="edit-2" class="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 text-brand-accent transition-opacity"></i></p>
+                        <p class="text-sm font-bold font-mono" id="stockMonthlyPL">$0</p>
+                    </div>
+                    <div class="w-px h-6 bg-gray-600 shrink-0"></div>
+                    <div class="group relative cursor-pointer" onclick="openPLModal()" title="點擊校正損益">
+                        <p class="text-[10px] text-gray-400 whitespace-nowrap flex items-center gap-1">本年實現損益 <i data-lucide="edit-2" class="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 text-brand-accent transition-opacity"></i></p>
+                        <p class="text-sm font-bold font-mono" id="stockYearlyPL">$0</p>
+                    </div>
                 </div>
+                <button onclick="openTradeModal()" class="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg shadow-lg transition-colors font-bold">
+                    <i data-lucide="shopping-cart" class="h-4 w-4"></i> 股票買賣
+                </button>
             </div>
         </div>
         
@@ -531,6 +549,28 @@
         </div>
     </div>
 
+    <!-- 股票損益校正 Modal -->
+    <div id="stockPLModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-brand-accent/50 rounded-2xl w-full max-w-sm p-5 shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="edit-3" class="h-5 w-5 text-brand-accent"></i> 歷史損益手動校正</h3>
+            <p class="text-xs text-gray-400 mb-4">輸入的校正值將與系統自動計算的交易損益疊加。適合補登過往未紀錄的損益基期。</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">本月損益校正基數 (NT$)</label>
+                    <input type="number" id="plMonthInput" step="1" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white focus:border-brand-accent outline-none font-mono">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">本年損益校正基數 (NT$)</label>
+                    <input type="number" id="plYearInput" step="1" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white focus:border-brand-accent outline-none font-mono">
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end gap-2">
+                <button onclick="closeModal('stockPLModal')" class="px-4 py-2 text-gray-400 hover:text-white">取消</button>
+                <button onclick="submitPL()" class="px-5 py-2 bg-brand-accent hover:bg-blue-500 text-white rounded-lg font-bold shadow-lg">確認同步</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 刪除確認 Modal -->
     <div id="confirmModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-[#ef4444]/30 rounded-2xl p-6 text-center w-full max-w-sm">
@@ -569,6 +609,8 @@
             ],
             stockCash: 9300,
             stockHistory: [],
+            manualMonthlyPL: 0,
+            manualYearlyPL: 0,
             banks: [
                 { id: "b1", name: "台新 Richart", balance: 125000 },
                 { id: "b2", name: "永豐 DAWHO", balance: 48000 }
@@ -604,6 +646,8 @@
                     if (doc.exists) {
                         appState = doc.data();
                         if(appState.stockCash === undefined) appState.stockCash = defaultState.stockCash;
+                        if(appState.manualMonthlyPL === undefined) appState.manualMonthlyPL = 0;
+                        if(appState.manualYearlyPL === undefined) appState.manualYearlyPL = 0;
                         if(!appState.stockHistory) appState.stockHistory = [];
                         if(!appState.banks) appState.banks = defaultState.banks;
                         if(!appState.funds) appState.funds = defaultState.funds;
@@ -629,6 +673,8 @@
             if(!appState.transactions) appState.transactions = defaultState.transactions;
             if(!appState.stockHistory) appState.stockHistory = [];
             if(appState.stockCash === undefined) appState.stockCash = 9300;
+            if(appState.manualMonthlyPL === undefined) appState.manualMonthlyPL = 0;
+            if(appState.manualYearlyPL === undefined) appState.manualYearlyPL = 0;
             if(!appState.inventory) appState.inventory = defaultState.inventory;
             if(!appState.watchlist) appState.watchlist = defaultState.watchlist;
         } catch(e) {
@@ -833,6 +879,31 @@
                 totalValue += i.price * i.shares;
             });
 
+            // 計算本月、本年實現損益 (包含手動校正值)
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            let mPL = appState.manualMonthlyPL || 0;
+            let yPL = appState.manualYearlyPL || 0;
+
+            if (appState.stockHistory) {
+                appState.stockHistory.forEach(h => {
+                    if (h.type === 'sell' && h.realizedPL !== undefined) {
+                        let parts = h.date.split('/');
+                        if (parts.length >= 2) {
+                            let hYear = parseInt(parts[0]);
+                            let hMonth = parseInt(parts[1]);
+                            if (hYear === currentYear) {
+                                yPL += h.realizedPL;
+                                if (hMonth === currentMonth) {
+                                    mPL += h.realizedPL;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
             safeSetText('stockTotalCost', `$${totalCost.toLocaleString(undefined, {maximumFractionDigits: 0})}`);
             safeSetText('stockTotalValue', `$${totalValue.toLocaleString(undefined, {maximumFractionDigits: 0})}`);
             
@@ -841,6 +912,18 @@
                 const unrealizedPL = totalValue - totalCost;
                 elUnrealizedPL.innerText = `${unrealizedPL >= 0 ? '+' : ''}$${unrealizedPL.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
                 elUnrealizedPL.className = `text-sm font-bold font-mono ${unrealizedPL >= 0 ? 'text-[#ef4444]' : 'text-[#10b981]'}`;
+            }
+
+            const elMonthlyPL = document.getElementById('stockMonthlyPL');
+            if(elMonthlyPL) {
+                elMonthlyPL.innerText = `${mPL >= 0 ? '+' : ''}$${mPL.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+                elMonthlyPL.className = `text-sm font-bold font-mono ${mPL >= 0 ? 'text-[#ef4444]' : 'text-[#10b981]'}`;
+            }
+
+            const elYearlyPL = document.getElementById('stockYearlyPL');
+            if(elYearlyPL) {
+                elYearlyPL.innerText = `${yPL >= 0 ? '+' : ''}$${yPL.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+                elYearlyPL.className = `text-sm font-bold font-mono ${yPL >= 0 ? 'text-[#ef4444]' : 'text-[#10b981]'}`;
             }
             
             tbody.innerHTML = appState.inventory.map((item, idx) => {
@@ -1301,6 +1384,23 @@
             if(!isNaN(val) && val >= 0) {
                 appState.stockCash = val; saveState(); closeModal('stockCashModal'); showToast('股票交割金已手動校正更新');
             }
+        };
+
+        const openPLModal = () => {
+            document.getElementById('plMonthInput').value = appState.manualMonthlyPL || 0;
+            document.getElementById('plYearInput').value = appState.manualYearlyPL || 0;
+            document.getElementById('stockPLModal').classList.remove('hidden');
+            try { lucide.createIcons(); } catch(e){}
+        };
+
+        const submitPL = () => {
+            const mVal = parseFloat(document.getElementById('plMonthInput').value) || 0;
+            const yVal = parseFloat(document.getElementById('plYearInput').value) || 0;
+            appState.manualMonthlyPL = mVal;
+            appState.manualYearlyPL = yVal;
+            saveState(); 
+            closeModal('stockPLModal'); 
+            showToast('歷史損益校正值已更新');
         };
 
         const openStockAddModal = () => {
