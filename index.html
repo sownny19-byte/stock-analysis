@@ -372,15 +372,22 @@
             
             <div class="flex flex-col gap-4">
                 <div class="bg-gradient-to-br from-gray-800 to-gray-850 p-5 rounded-2xl border border-gray-700 shadow-xl">
-                    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="pen-tool" class="text-brand-bank h-4 w-4"></i> 快速記帳 (連動帳戶餘額)</h3>
+                    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="pen-tool" class="text-brand-bank h-4 w-4"></i> 快速記帳與轉帳</h3>
                     <form id="txForm" onsubmit="submitTransaction(event)" class="space-y-3">
                         <div class="flex gap-2">
                             <input type="date" id="txDate" required class="bg-gray-900 border border-gray-600 rounded-lg p-2 text-sm text-white w-1/3 focus:border-brand-bank outline-none" style="color-scheme: dark;">
-                            <select id="txType" class="bg-gray-900 border border-gray-600 rounded-lg p-2.5 text-sm text-white w-1/3 focus:border-brand-bank outline-none">
+                            <!-- NEW: Added Transfer option -->
+                            <select id="txType" onchange="toggleTransferFields()" class="bg-gray-900 border border-gray-600 rounded-lg p-2.5 text-sm text-white w-1/3 focus:border-brand-bank outline-none">
                                 <option value="expense">支出 (-)</option>
                                 <option value="income">收入 (+)</option>
+                                <option value="transfer">轉帳 (=)</option>
                             </select>
                             <select id="txBank" class="bg-gray-900 border border-gray-600 rounded-lg p-2.5 text-sm text-white flex-1 focus:border-brand-bank outline-none"></select>
+                        </div>
+                        <!-- NEW: Transfer Target Bank Select -->
+                        <div id="transferTargetWrapper" class="hidden">
+                            <select id="txBankTarget" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:border-brand-bank outline-none">
+                            </select>
                         </div>
                         <div class="flex gap-2">
                             <input type="number" id="txAmount" required min="1" placeholder="金額 (NT$)" class="w-1/3 bg-gray-900 border border-gray-600 rounded-lg p-2.5 text-sm text-white font-mono focus:border-brand-bank outline-none">
@@ -427,7 +434,6 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" id="loanListContainer"></div>
     </div>
 
-    
     <div id="tradeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-green-500/50 rounded-2xl w-full max-w-sm p-5 shadow-2xl">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="shopping-cart" class="text-green-500 w-5 h-5"></i> 股票買賣登錄</h3>
@@ -711,7 +717,7 @@
 
         let chart = null, candleSeries = null, lineSeries = null;
         let isCandleMode = false; 
-        let currentStock = "0000", currentTimeframe = "1D", taiexCurrentValue = 43644.40;
+        let currentStock = "0000", currentTimeframe = "1D", taiexCurrentValue = 43516.26;
         let confirmAction = null, itemToDelete = null;
         let isChartInitialized = false;
         let donutChartInstance = null;
@@ -837,8 +843,15 @@
                 } else {
                     const recentTxs = [...appState.transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
                     recentTxContainer.innerHTML = recentTxs.map(tx => {
-                        const isExp = tx.type === 'expense';
-                        const color = isExp ? 'text-red-400' : 'text-brand-bank';
+                        let txDisplay = '';
+                        if(tx.type === 'transfer') {
+                            txDisplay = `<p class="text-sm font-bold text-gray-400 font-mono"><i data-lucide="arrow-right-left" class="inline w-3 h-3 mr-1"></i>$${tx.amount.toLocaleString()}</p>`;
+                        } else {
+                            const isExp = tx.type === 'expense';
+                            const color = isExp ? 'text-red-400' : 'text-brand-bank';
+                            txDisplay = `<p class="text-sm font-bold ${color} font-mono">${isExp ? '-' : '+'}$${tx.amount.toLocaleString()}</p>`;
+                        }
+
                         const isHistorical = tx.bankLinked === false;
                         return `<div class="flex justify-between items-center border-b border-gray-700/50 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
                             <div>
@@ -848,7 +861,7 @@
                                 </p>
                                 <p class="text-[10px] text-gray-500 mt-0.5">${tx.date} | ${tx.bankName}</p>
                             </div>
-                            <p class="text-sm font-bold ${color} font-mono">${isExp ? '-' : '+'}$${tx.amount.toLocaleString()}</p>
+                            ${txDisplay}
                         </div>`;
                     }).join('');
                 }
@@ -1042,7 +1055,7 @@
             if (filterVal && summaryEl && plEl) {
                 summaryEl.classList.remove('hidden');
                 plEl.innerText = `${filterRealizedPL >= 0 ? '+' : ''}$${filterRealizedPL.toLocaleString()}`;
-                plEl.className = `font-bold ${filterRealizedPL >= 0 ? 'text-[#ef4444]' : 'text-[#10b981]'}`;
+                plEl.className = `text-sm font-bold ${filterRealizedPL >= 0 ? 'text-[#ef4444]' : 'text-[#10b981]'}`;
             } else if (summaryEl) {
                 summaryEl.classList.add('hidden');
             }
@@ -1084,8 +1097,15 @@
                     </div>
                 `).join('');
             }
+            
+            const bankOpts = appState.banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
             const txBankEl = document.getElementById('txBank');
-            if(txBankEl) txBankEl.innerHTML = appState.banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+            const txBankTargetEl = document.getElementById('txBankTarget');
+            if(txBankEl) txBankEl.innerHTML = bankOpts;
+            if(txBankTargetEl) {
+                txBankTargetEl.innerHTML = bankOpts;
+                if(appState.banks.length > 1) txBankTargetEl.selectedIndex = 1;
+            }
         };
 
         const renderTransactions = () => {
@@ -1117,7 +1137,15 @@
             container.innerHTML = sortedTx.map((tx) => {
                 if (filterVal) {
                     if(tx.type === 'income') filterInc += tx.amount;
-                    else filterExp += tx.amount;
+                    else if(tx.type === 'expense') filterExp += tx.amount;
+                }
+
+                let txDisplay = '';
+                if(tx.type === 'transfer') {
+                    txDisplay = `<span class="text-gray-400 font-mono font-bold"><i data-lucide="arrow-right-left" class="inline w-3 h-3 mr-1"></i>$${tx.amount.toLocaleString()}</span>`;
+                } else {
+                    const isExp = tx.type === 'expense';
+                    txDisplay = `<span class="${isExp ? 'text-[#ef4444]' : 'text-brand-bank'} font-mono font-bold">${isExp ? '-' : '+'}$${tx.amount.toLocaleString()}</span>`;
                 }
 
                 const isHistorical = tx.bankLinked === false;
@@ -1131,9 +1159,7 @@
                         <p class="text-gray-400 text-xs mt-0.5"><i data-lucide="credit-card" class="w-3 h-3 inline mr-1 text-gray-500"></i>${tx.bankName} <span class="text-gray-500 font-normal text-[10px] ml-1">${tx.date}</span></p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="${tx.type === 'income' ? 'text-brand-bank' : 'text-[#ef4444]'} font-mono font-bold">
-                            ${tx.type === 'income' ? '+' : '-'}$${tx.amount.toLocaleString()}
-                        </span>
+                        ${txDisplay}
                         <button onclick="requestDeleteTx('bank', '${tx.id}')" class="text-gray-500 hover:text-[#ef4444] opacity-0 group-hover:opacity-100 p-1"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
                     </div>
                 </div>
@@ -1159,6 +1185,8 @@
             let dInc = 0, dExp = 0, mInc = 0, mExp = 0, yInc = 0, yExp = 0;
 
             appState.transactions.forEach(tx => {
+                if(tx.type === 'transfer') return; // Skip transfer logic in stats
+                
                 let parts = tx.date.split('/');
                 let txYear, txMonth, txDay;
                 
@@ -1239,6 +1267,22 @@
             `).join('');
         };
 
+        const toggleTransferFields = () => {
+            const type = document.getElementById('txType').value;
+            const targetWrapper = document.getElementById('transferTargetWrapper');
+            const noteInput = document.getElementById('txNote');
+            
+            if (type === 'transfer') {
+                targetWrapper.classList.remove('hidden');
+                noteInput.placeholder = "轉帳備註 (可留空)";
+                noteInput.required = false;
+            } else {
+                targetWrapper.classList.add('hidden');
+                noteInput.placeholder = "項目說明 (例: 晚餐、薪資)";
+                noteInput.required = true;
+            }
+        };
+
         const submitTrade = (e) => {
             e.preventDefault();
             const dateInputVal = document.getElementById('tmDate').value; 
@@ -1306,16 +1350,51 @@
             const type = document.getElementById('txType').value;
             const bankId = document.getElementById('txBank').value;
             const amount = parseFloat(document.getElementById('txAmount').value);
-            const note = document.getElementById('txNote').value.trim();
+            let note = document.getElementById('txNote').value.trim();
             
-            if(!bankId || isNaN(amount) || amount <= 0 || !note || !dateInputVal) return showToast('請填寫完整正確的資訊', 'alert-triangle', 'text-brand-warning');
+            if(!bankId || isNaN(amount) || amount <= 0 || !dateInputVal) return showToast('請填寫完整正確的資訊', 'alert-triangle', 'text-brand-warning');
 
             const bank = appState.banks.find(b => b.id === bankId);
-            if(!bank) return showToast('找不到該銀行帳戶', 'alert-triangle');
+            if(!bank) return showToast('找不到出款銀行帳戶', 'alert-triangle');
 
             const now = new Date();
             const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
             const isToday = dateInputVal === todayStr;
+            const dateStrForStorage = dateInputVal.replace(/-/g, '/');
+
+            // NEW: Transfer Logic
+            if(type === 'transfer') {
+                const targetBankId = document.getElementById('txBankTarget').value;
+                if(bankId === targetBankId) return showToast('轉出與轉入帳戶不能相同', 'alert-triangle', 'text-brand-warning');
+                const targetBank = appState.banks.find(b => b.id === targetBankId);
+                if(!targetBank) return showToast('找不到轉入銀行帳戶', 'alert-triangle');
+
+                if(isToday) {
+                    if(bank.balance < amount) return showToast('轉出帳戶餘額不足', 'alert-triangle', 'text-brand-warning');
+                    bank.balance -= amount;
+                    targetBank.balance += amount;
+                }
+
+                if(!note) note = `轉帳至 ${targetBank.name}`;
+                
+                appState.transactions.unshift({
+                    id: 'tx'+Date.now(),
+                    date: dateStrForStorage,
+                    type, amount, note, bankId, bankName: bank.name,
+                    targetBankId: targetBankId, targetBankName: targetBank.name,
+                    bankLinked: isToday 
+                });
+
+                saveState();
+                e.target.reset(); 
+                document.getElementById('txType').value = 'expense';
+                toggleTransferFields();
+                document.getElementById('txDate').value = todayStr; 
+                return showToast(isToday ? `成功從 ${bank.name} 轉帳 $${amount.toLocaleString()} 至 ${targetBank.name}` : '歷史轉帳補登完成');
+            }
+
+            // Normal Income/Expense Logic
+            if(!note) return showToast('請填寫項目說明', 'alert-triangle', 'text-brand-warning');
 
             if(isToday) {
                 if(type === 'expense') {
@@ -1326,8 +1405,6 @@
                 }
             }
 
-            const dateStrForStorage = dateInputVal.replace(/-/g, '/'); 
-            
             appState.transactions.unshift({
                 id: 'tx'+Date.now(),
                 date: dateStrForStorage,
@@ -1339,6 +1416,7 @@
             saveState();
             e.target.reset(); 
             document.getElementById('txType').value = 'expense'; 
+            toggleTransferFields();
             document.getElementById('txDate').value = todayStr; 
             
             if (isToday) {
@@ -1562,13 +1640,24 @@
                     if(idx > -1) {
                         const tx = appState.transactions[idx];
                         const isBankLinked = tx.bankLinked !== false; 
-                        const bank = appState.banks.find(b => b.id === tx.bankId);
-                        if(bank && isBankLinked) {
-                            if(tx.type === 'expense') bank.balance += tx.amount;
-                            else bank.balance -= tx.amount;
+                        
+                        if(tx.type === 'transfer') {
+                            if(isBankLinked) {
+                                const sourceBank = appState.banks.find(b => b.id === tx.bankId);
+                                const targetBank = appState.banks.find(b => b.id === tx.targetBankId);
+                                if(sourceBank) sourceBank.balance += tx.amount;
+                                if(targetBank) targetBank.balance -= tx.amount;
+                            }
+                        } else {
+                            const bank = appState.banks.find(b => b.id === tx.bankId);
+                            if(bank && isBankLinked) {
+                                if(tx.type === 'expense') bank.balance += tx.amount;
+                                else bank.balance -= tx.amount;
+                            }
                         }
+                        
                         appState.transactions.splice(idx, 1);
-                        showToast(isBankLinked ? '銀行記帳已刪除，餘額已校正還原' : '歷史銀行記帳已刪除');
+                        showToast(isBankLinked ? '記帳已刪除，餘額已校正還原' : '歷史記帳已刪除');
                     }
                 } else if(category === 'stock') {
                     const idx = appState.stockHistory.findIndex(h => h.id === id);
