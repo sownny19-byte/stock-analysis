@@ -372,7 +372,12 @@
             
             <div class="flex flex-col gap-4">
                 <div class="bg-gradient-to-br from-gray-800 to-gray-850 p-5 rounded-2xl border border-gray-700 shadow-xl">
-                    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="pen-tool" class="text-brand-bank h-4 w-4"></i> 快速記帳與轉帳</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="pen-tool" class="text-brand-bank h-4 w-4"></i> 快速記帳與轉帳</h3>
+                        <button type="button" onclick="openBatchTxModal()" class="text-xs bg-brand-bank/20 hover:bg-brand-bank/30 text-brand-bank border border-brand-bank/40 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors font-semibold shadow-sm">
+                            <i data-lucide="layers" class="h-3.5 w-3.5"></i> 批次多筆記帳
+                        </button>
+                    </div>
                     <form id="txForm" onsubmit="submitTransaction(event)" class="space-y-3">
                         <div class="flex gap-2">
                             <input type="date" id="txDate" required class="bg-gray-900 border border-gray-600 rounded-lg p-2 text-sm text-white w-1/3 focus:border-brand-bank outline-none" style="color-scheme: dark;">
@@ -432,6 +437,60 @@
             </button>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" id="loanListContainer"></div>
+    </div>
+
+    <div id="batchTxModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-brand-bank/50 rounded-2xl w-full max-w-4xl p-5 md:p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-start mb-3 border-b border-gray-800 pb-3">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i data-lucide="layers" class="text-brand-bank w-5 h-5"></i> 批次多筆記帳登錄
+                    </h3>
+                    <p class="text-xs text-gray-400 mt-1">
+                        可一次填寫多筆不同日期與帳戶的收支。系統會自動判斷日期：<span class="text-brand-bank font-semibold">今日帳務</span>將即時連動帳戶餘額，<span class="text-gray-300 font-semibold">非今日之歷史帳務</span>則標記為「歷史補登」且不扣減或增加目前帳戶餘額。
+                    </p>
+                </div>
+                <button type="button" onclick="closeModal('batchTxModal')" class="text-gray-400 hover:text-white p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form onsubmit="submitBatchTransactions(event)" class="flex flex-col flex-1 overflow-hidden">
+                <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 pr-1">
+                    <table class="w-full text-xs text-left whitespace-nowrap">
+                        <thead class="text-gray-400 border-b border-gray-700 sticky top-0 bg-gray-900 z-10">
+                            <tr>
+                                <th class="py-2 px-1.5 w-8 text-center">#</th>
+                                <th class="py-2 px-1.5 w-36">日期</th>
+                                <th class="py-2 px-1.5 w-28">收支類型</th>
+                                <th class="py-2 px-1.5 w-40">對應帳戶</th>
+                                <th class="py-2 px-1.5 w-32">金額 (NT$)</th>
+                                <th class="py-2 px-1.5 min-w-[180px]">項目說明</th>
+                                <th class="py-2 px-1.5 w-10 text-center">刪</th>
+                            </tr>
+                        </thead>
+                        <tbody id="batchTxRowsContainer" class="divide-y divide-gray-800/60"></tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-3">
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <button type="button" onclick="addBatchTxRow()" class="flex-1 sm:flex-none text-xs bg-gray-800 hover:bg-gray-700 text-brand-bank border border-gray-600 px-3 py-2 rounded-lg flex items-center justify-center gap-1 transition-colors font-semibold">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增一筆列
+                        </button>
+                        <button type="button" onclick="for(let i=0;i<3;i++) addBatchTxRow();" class="flex-1 sm:flex-none text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 px-3 py-2 rounded-lg flex items-center justify-center gap-1 transition-colors">
+                            <i data-lucide="Copy-plus" class="w-3.5 h-3.5"></i> 一次加 3 列
+                        </button>
+                    </div>
+                    <div class="flex justify-end gap-2 w-full sm:w-auto">
+                        <button type="button" onclick="closeModal('batchTxModal')" class="flex-1 sm:flex-none px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors">取消</button>
+                        <button type="submit" class="flex-1 sm:flex-none px-6 py-2 bg-brand-bank hover:bg-teal-400 text-white rounded-lg font-bold shadow-lg shadow-brand-bank/20 text-sm transition-colors">
+                            確認批次登錄
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div id="tradeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -1424,6 +1483,211 @@
             } else {
                 showToast('歷史紀錄補登完成 (未影響銀行餘額)', 'check-circle', 'text-brand-bank');
             }
+        };
+
+        const getTodayDateString = () => {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        };
+
+        const reindexBatchRows = () => {
+            const rows = document.querySelectorAll('#batchTxRowsContainer .batch-tx-row');
+            rows.forEach((row, index) => {
+                const numCell = row.querySelector('.row-index');
+                if (numCell) numCell.innerText = index + 1;
+            });
+        };
+
+        const addBatchTxRow = (defaultDate = '', defaultBankId = '') => {
+            const container = document.getElementById('batchTxRowsContainer');
+            if (!container) return;
+
+            // Inherit date and bank from the last row if available for faster consecutive entry
+            const existingRows = container.querySelectorAll('.batch-tx-row');
+            let dateVal = defaultDate || getTodayDateString();
+            let bankVal = defaultBankId || (appState.banks[0]?.id || '');
+
+            if (existingRows.length > 0 && !defaultDate) {
+                const lastRow = existingRows[existingRows.length - 1];
+                const lastDate = lastRow.querySelector('.batch-date')?.value;
+                const lastBank = lastRow.querySelector('.batch-bank')?.value;
+                if (lastDate) dateVal = lastDate;
+                if (lastBank) bankVal = lastBank;
+            }
+
+            const bankOpts = appState.banks.map(b => 
+                `<option value="${b.id}" ${b.id === bankVal ? 'selected' : ''}>${b.name}</option>`
+            ).join('');
+
+            const tr = document.createElement('tr');
+            tr.className = 'batch-tx-row hover:bg-gray-800/40 transition-colors';
+            tr.innerHTML = `
+                <td class="py-2 px-1.5 text-center text-gray-500 font-mono row-index"></td>
+                <td class="py-2 px-1.5">
+                    <input type="date" value="${dateVal}" required class="batch-date w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-xs text-white focus:border-brand-bank outline-none" style="color-scheme: dark;">
+                </td>
+                <td class="py-2 px-1.5">
+                    <select class="batch-type w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-xs text-white focus:border-brand-bank outline-none">
+                        <option value="expense">支出 (-)</option>
+                        <option value="income">收入 (+)</option>
+                    </select>
+                </td>
+                <td class="py-2 px-1.5">
+                    <select class="batch-bank w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-xs text-white focus:border-brand-bank outline-none">
+                        ${bankOpts}
+                    </select>
+                </td>
+                <td class="py-2 px-1.5">
+                    <input type="number" min="1" step="any" placeholder="金額" class="batch-amount w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-xs text-white font-mono focus:border-brand-bank outline-none">
+                </td>
+                <td class="py-2 px-1.5">
+                    <input type="text" placeholder="項目說明 (例: 午餐、日用品)" class="batch-note w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-xs text-white focus:border-brand-bank outline-none">
+                </td>
+                <td class="py-2 px-1.5 text-center">
+                    <button type="button" onclick="removeBatchTxRow(this)" class="text-gray-500 hover:text-[#ef4444] p-1 transition-colors" title="刪除此列">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </td>
+            `;
+            container.appendChild(tr);
+            reindexBatchRows();
+            try { lucide.createIcons({ root: tr }); } catch(e) {}
+        };
+
+        const removeBatchTxRow = (btn) => {
+            const container = document.getElementById('batchTxRowsContainer');
+            const rows = container.querySelectorAll('.batch-tx-row');
+            if (rows.length <= 1) {
+                // Clear inputs if it's the only remaining row
+                rows[0].querySelector('.batch-amount').value = '';
+                rows[0].querySelector('.batch-note').value = '';
+                return showToast('至少需保留一列輸入框', 'alert-triangle', 'text-brand-warning');
+            }
+            const tr = btn.closest('.batch-tx-row');
+            if (tr) tr.remove();
+            reindexBatchRows();
+        };
+
+        const openBatchTxModal = () => {
+            if (!appState.banks || appState.banks.length === 0) {
+                return showToast('請先新增至少一個銀行帳戶', 'alert-triangle', 'text-brand-warning');
+            }
+            const container = document.getElementById('batchTxRowsContainer');
+            if (container) container.innerHTML = '';
+            // Initialize with 3 default rows
+            for (let i = 0; i < 3; i++) {
+                addBatchTxRow();
+            }
+            document.getElementById('batchTxModal').classList.remove('hidden');
+            try { lucide.createIcons(); } catch(e) {}
+        };
+
+        const submitBatchTransactions = (e) => {
+            e.preventDefault();
+            const rows = document.querySelectorAll('#batchTxRowsContainer .batch-tx-row');
+            const todayStr = getTodayDateString();
+            const validEntries = [];
+
+            // 1. Parse and validate rows (skip completely blank rows where both amount and note are empty)
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const dateVal = row.querySelector('.batch-date')?.value;
+                const type = row.querySelector('.batch-type')?.value;
+                const bankId = row.querySelector('.batch-bank')?.value;
+                const amountRaw = row.querySelector('.batch-amount')?.value.trim();
+                const note = row.querySelector('.batch-note')?.value.trim();
+
+                if (!amountRaw && !note) continue; // Ignore untouched blank rows
+
+                const amount = parseFloat(amountRaw);
+                if (!dateVal) {
+                    return showToast(`第 ${i + 1} 列：請選擇日期`, 'alert-triangle', 'text-brand-warning');
+                }
+                if (isNaN(amount) || amount <= 0) {
+                    return showToast(`第 ${i + 1} 列：請輸入有效金額`, 'alert-triangle', 'text-brand-warning');
+                }
+                if (!note) {
+                    return showToast(`第 ${i + 1} 列：請填寫項目說明`, 'alert-triangle', 'text-brand-warning');
+                }
+
+                const bank = appState.banks.find(b => b.id === bankId);
+                if (!bank) {
+                    return showToast(`第 ${i + 1} 列：找不到對應的銀行帳戶`, 'alert-triangle', 'text-brand-warning');
+                }
+
+                validEntries.push({
+                    rowNum: i + 1,
+                    dateVal,
+                    dateStrForStorage: dateVal.replace(/-/g, '/'),
+                    type,
+                    bankId,
+                    bankName: bank.name,
+                    amount,
+                    note,
+                    isToday: dateVal === todayStr
+                });
+            }
+
+            if (validEntries.length === 0) {
+                return showToast('請至少填寫一筆完整的記帳資料', 'alert-triangle', 'text-brand-warning');
+            }
+
+            // 2. Pre-check bank balances for today's linked transactions
+            const simulatedBalances = {};
+            appState.banks.forEach(b => { simulatedBalances[b.id] = b.balance; });
+
+            for (const entry of validEntries) {
+                if (entry.isToday) {
+                    if (entry.type === 'expense') {
+                        simulatedBalances[entry.bankId] -= entry.amount;
+                    } else if (entry.type === 'income') {
+                        simulatedBalances[entry.bankId] += entry.amount;
+                    }
+                }
+            }
+
+            for (const bank of appState.banks) {
+                if (simulatedBalances[bank.id] < 0) {
+                    return showToast(`「${bank.name}」餘額不足以支付今日批次支出！`, 'alert-triangle', 'text-brand-warning');
+                }
+            }
+
+            // 3. Commit balance updates and insert transaction records
+            let todayCount = 0;
+            let histCount = 0;
+            const baseTime = Date.now();
+
+            validEntries.forEach((entry, idx) => {
+                if (entry.isToday) {
+                    const bank = appState.banks.find(b => b.id === entry.bankId);
+                    if (bank) {
+                        if (entry.type === 'expense') bank.balance -= entry.amount;
+                        else if (entry.type === 'income') bank.balance += entry.amount;
+                    }
+                    todayCount++;
+                } else {
+                    histCount++;
+                }
+
+                appState.transactions.unshift({
+                    id: `tx_${baseTime}_${idx}`,
+                    date: entry.dateStrForStorage,
+                    type: entry.type,
+                    amount: entry.amount,
+                    note: entry.note,
+                    bankId: entry.bankId,
+                    bankName: entry.bankName,
+                    bankLinked: entry.isToday
+                });
+            });
+
+            if (appState.transactions.length > 300) {
+                appState.transactions = appState.transactions.slice(0, 300);
+            }
+
+            saveState();
+            closeModal('batchTxModal');
+            showToast(`批次登錄 ${validEntries.length} 筆完成！(今日連動 ${todayCount} 筆 / 歷史補登 ${histCount} 筆)`, 'check-circle', 'text-brand-bank');
         };
 
         const openTradeModal = (symbol = '', name = '', price = '') => {
