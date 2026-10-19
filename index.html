@@ -493,6 +493,72 @@
         </div>
     </div>
 
+    <div id="editTxModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-brand-bank/50 rounded-2xl w-full max-w-md p-5 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="edit-3" class="text-brand-bank w-5 h-5"></i> 編輯帳務紀錄
+                </h3>
+                <button type="button" onclick="closeModal('editTxModal')" class="text-gray-400 hover:text-white p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="submitEditTransaction(event)" class="space-y-3">
+                <input type="hidden" id="editTxId">
+                <div class="flex gap-2">
+                    <div class="w-1/2">
+                        <label class="text-[11px] text-gray-400 mb-1 block">日期</label>
+                        <input type="date" id="editTxDate" required onchange="onEditTxDateChange()" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:border-brand-bank outline-none" style="color-scheme: dark;">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="text-[11px] text-gray-400 mb-1 block">類型</label>
+                        <select id="editTxType" onchange="toggleEditTransferFields()" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:border-brand-bank outline-none">
+                            <option value="expense">支出 (-)</option>
+                            <option value="income">收入 (+)</option>
+                            <option value="transfer">轉帳 (=)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[11px] text-gray-400 mb-1 block" id="editTxBankLabel">對應銀行帳戶</label>
+                    <select id="editTxBank" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:border-brand-bank outline-none"></select>
+                </div>
+
+                <div id="editTransferTargetWrapper" class="hidden">
+                    <label class="text-[11px] text-gray-400 mb-1 block">轉入目標銀行帳戶</label>
+                    <select id="editTxBankTarget" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:border-brand-bank outline-none"></select>
+                </div>
+
+                <div class="flex gap-2">
+                    <div class="w-2/5">
+                        <label class="text-[11px] text-gray-400 mb-1 block">金額 (NT$)</label>
+                        <input type="number" id="editTxAmount" required min="1" step="any" placeholder="金額" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2.5 text-sm text-white font-mono focus:border-brand-bank outline-none">
+                    </div>
+                    <div class="w-3/5">
+                        <label class="text-[11px] text-gray-400 mb-1 block">項目說明</label>
+                        <input type="text" id="editTxNote" required placeholder="項目說明" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:border-brand-bank outline-none">
+                    </div>
+                </div>
+
+                <div class="bg-gray-800/70 border border-gray-700 rounded-lg p-3 mt-2">
+                    <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                        <input type="checkbox" id="editTxBankLinked" class="mt-0.5 rounded bg-gray-900 border-gray-600 text-brand-bank focus:ring-0 accent-[#14b8a6] w-4 h-4">
+                        <span class="text-xs text-gray-300 leading-relaxed">
+                            連動更新銀行帳戶餘額
+                            <span class="block text-[10px] text-gray-400">勾選時會即時增減帳戶餘額；若為「歷史補登」不影響目前餘額請取消勾選。</span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="mt-5 pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('editTxModal')" class="px-4 py-2 text-gray-400 hover:text-white text-sm">取消</button>
+                    <button type="submit" class="px-5 py-2 bg-brand-bank hover:bg-teal-400 text-white rounded-lg font-bold shadow-lg shadow-brand-bank/20 text-sm transition-colors">儲存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="tradeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-green-500/50 rounded-2xl w-full max-w-sm p-5 shadow-2xl">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="shopping-cart" class="text-green-500 w-5 h-5"></i> 股票買賣登錄</h3>
@@ -1215,11 +1281,14 @@
                             ${tx.note} 
                             ${isHistorical ? '<span class="text-[10px] bg-gray-600/50 text-gray-400 px-1.5 py-0.5 rounded border border-gray-600">歷史補登</span>' : ''}
                         </p>
-                        <p class="text-gray-400 text-xs mt-0.5"><i data-lucide="credit-card" class="w-3 h-3 inline mr-1 text-gray-500"></i>${tx.bankName} <span class="text-gray-500 font-normal text-[10px] ml-1">${tx.date}</span></p>
+                        <p class="text-gray-400 text-xs mt-0.5"><i data-lucide="credit-card" class="w-3 h-3 inline mr-1 text-gray-500"></i>${tx.bankName}${tx.type === 'transfer' && tx.targetBankName ? ` <i data-lucide="arrow-right" class="w-3 h-3 inline mx-0.5 text-gray-500"></i> ${tx.targetBankName}` : ''} <span class="text-gray-500 font-normal text-[10px] ml-1">${tx.date}</span></p>
                     </div>
                     <div class="flex items-center gap-3">
                         ${txDisplay}
-                        <button onclick="requestDeleteTx('bank', '${tx.id}')" class="text-gray-500 hover:text-[#ef4444] opacity-0 group-hover:opacity-100 p-1"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="openEditTxModal('${tx.id}')" class="text-gray-400 hover:text-white p-1" title="編輯帳務"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="requestDeleteTx('bank', '${tx.id}')" class="text-gray-500 hover:text-[#ef4444] p-1" title="刪除帳務"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                        </div>
                     </div>
                 </div>
             `}).join('');
@@ -1688,6 +1757,176 @@
             saveState();
             closeModal('batchTxModal');
             showToast(`批次登錄 ${validEntries.length} 筆完成！(今日連動 ${todayCount} 筆 / 歷史補登 ${histCount} 筆)`, 'check-circle', 'text-brand-bank');
+        };
+
+        const toggleEditTransferFields = () => {
+            const type = document.getElementById('editTxType').value;
+            const targetWrapper = document.getElementById('editTransferTargetWrapper');
+            const bankLabel = document.getElementById('editTxBankLabel');
+            const noteInput = document.getElementById('editTxNote');
+
+            if (type === 'transfer') {
+                targetWrapper.classList.remove('hidden');
+                if (bankLabel) bankLabel.innerText = '轉出銀行帳戶';
+                noteInput.placeholder = '轉帳備註 (可留空)';
+                noteInput.required = false;
+            } else {
+                targetWrapper.classList.add('hidden');
+                if (bankLabel) bankLabel.innerText = '對應銀行帳戶';
+                noteInput.placeholder = '項目說明 (例: 晚餐、薪資)';
+                noteInput.required = true;
+            }
+        };
+
+        const onEditTxDateChange = () => {
+            const dateVal = document.getElementById('editTxDate').value;
+            const todayStr = getTodayDateString();
+            const linkedCheckbox = document.getElementById('editTxBankLinked');
+            if (linkedCheckbox && dateVal) {
+                linkedCheckbox.checked = (dateVal === todayStr);
+            }
+        };
+
+        const openEditTxModal = (txId) => {
+            const tx = appState.transactions.find(t => t.id === txId);
+            if (!tx) return showToast('找不到該筆帳務紀錄', 'alert-triangle', 'text-brand-warning');
+
+            const bankOpts = appState.banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+            const bankEl = document.getElementById('editTxBank');
+            const targetBankEl = document.getElementById('editTxBankTarget');
+            if (bankEl) bankEl.innerHTML = bankOpts;
+            if (targetBankEl) targetBankEl.innerHTML = bankOpts;
+
+            document.getElementById('editTxId').value = tx.id;
+
+            // Convert stored YYYY/MM/DD (or MM/DD) to YYYY-MM-DD for date input
+            const parts = (tx.date || '').split('/');
+            let formattedDate = getTodayDateString();
+            if (parts.length === 3) {
+                formattedDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+            } else if (parts.length === 2) {
+                formattedDate = `${new Date().getFullYear()}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+            }
+            document.getElementById('editTxDate').value = formattedDate;
+
+            document.getElementById('editTxType').value = tx.type || 'expense';
+            if (bankEl && tx.bankId) bankEl.value = tx.bankId;
+            if (targetBankEl) {
+                if (tx.targetBankId) {
+                    targetBankEl.value = tx.targetBankId;
+                } else if (appState.banks.length > 1) {
+                    const altBank = appState.banks.find(b => b.id !== tx.bankId);
+                    if (altBank) targetBankEl.value = altBank.id;
+                }
+            }
+
+            document.getElementById('editTxAmount').value = tx.amount;
+            document.getElementById('editTxNote').value = tx.note || '';
+            document.getElementById('editTxBankLinked').checked = (tx.bankLinked !== false);
+
+            toggleEditTransferFields();
+            document.getElementById('editTxModal').classList.remove('hidden');
+            try { lucide.createIcons(); } catch(e) {}
+        };
+
+        const submitEditTransaction = (e) => {
+            e.preventDefault();
+            const txId = document.getElementById('editTxId').value;
+            const idx = appState.transactions.findIndex(t => t.id === txId);
+            if (idx === -1) return showToast('找不到該筆帳務紀錄', 'alert-triangle', 'text-brand-warning');
+
+            const oldTx = appState.transactions[idx];
+            const dateInputVal = document.getElementById('editTxDate').value;
+            const newType = document.getElementById('editTxType').value;
+            const newBankId = document.getElementById('editTxBank').value;
+            const newTargetBankId = document.getElementById('editTxBankTarget').value;
+            const newAmount = parseFloat(document.getElementById('editTxAmount').value);
+            let newNote = document.getElementById('editTxNote').value.trim();
+            const newBankLinked = document.getElementById('editTxBankLinked').checked;
+
+            if (!dateInputVal || !newBankId || isNaN(newAmount) || newAmount <= 0) {
+                return showToast('請填寫完整正確的日期与金額', 'alert-triangle', 'text-brand-warning');
+            }
+
+            const newBank = appState.banks.find(b => b.id === newBankId);
+            if (!newBank) return showToast('找不到對應的銀行帳戶', 'alert-triangle', 'text-brand-warning');
+
+            let newTargetBank = null;
+            if (newType === 'transfer') {
+                if (newBankId === newTargetBankId) {
+                    return showToast('轉出與轉入帳戶不能相同', 'alert-triangle', 'text-brand-warning');
+                }
+                newTargetBank = appState.banks.find(b => b.id === newTargetBankId);
+                if (!newTargetBank) return showToast('找不到轉入目標銀行帳戶', 'alert-triangle', 'text-brand-warning');
+                if (!newNote) newNote = `轉帳至 ${newTargetBank.name}`;
+            } else {
+                if (!newNote) return showToast('請填寫項目說明', 'alert-triangle', 'text-brand-warning');
+            }
+
+            // Simulate balance changes to verify sufficient funds before committing
+            const simBalances = {};
+            appState.banks.forEach(b => { simBalances[b.id] = b.balance; });
+
+            // 1. Revert old transaction effect if it was linked to bank balances
+            if (oldTx.bankLinked !== false) {
+                if (oldTx.type === 'expense') {
+                    if (simBalances[oldTx.bankId] !== undefined) simBalances[oldTx.bankId] += oldTx.amount;
+                } else if (oldTx.type === 'income') {
+                    if (simBalances[oldTx.bankId] !== undefined) simBalances[oldTx.bankId] -= oldTx.amount;
+                } else if (oldTx.type === 'transfer') {
+                    if (simBalances[oldTx.bankId] !== undefined) simBalances[oldTx.bankId] += oldTx.amount;
+                    if (simBalances[oldTx.targetBankId] !== undefined) simBalances[oldTx.targetBankId] -= oldTx.amount;
+                }
+            }
+
+            // 2. Apply new transaction effect if linked to bank balances
+            if (newBankLinked) {
+                if (newType === 'expense') {
+                    if (simBalances[newBankId] < newAmount) {
+                        return showToast(`「${newBank.name}」餘額不足以支付修改後的金額！`, 'alert-triangle', 'text-brand-warning');
+                    }
+                    simBalances[newBankId] -= newAmount;
+                } else if (newType === 'income') {
+                    simBalances[newBankId] += newAmount;
+                } else if (newType === 'transfer') {
+                    if (simBalances[newBankId] < newAmount) {
+                        return showToast(`「${newBank.name}」餘額不足以轉出修改後的金額！`, 'alert-triangle', 'text-brand-warning');
+                    }
+                    simBalances[newBankId] -= newAmount;
+                    simBalances[newTargetBankId] += newAmount;
+                }
+            }
+
+            // 3. Commit simulated balances to actual bank accounts
+            appState.banks.forEach(b => {
+                if (simBalances[b.id] !== undefined) b.balance = simBalances[b.id];
+            });
+
+            // 4. Update transaction record
+            const updatedTx = {
+                ...oldTx,
+                date: dateInputVal.replace(/-/g, '/'),
+                type: newType,
+                amount: newAmount,
+                note: newNote,
+                bankId: newBankId,
+                bankName: newBank.name,
+                bankLinked: newBankLinked
+            };
+
+            if (newType === 'transfer' && newTargetBank) {
+                updatedTx.targetBankId = newTargetBank.id;
+                updatedTx.targetBankName = newTargetBank.name;
+            } else {
+                delete updatedTx.targetBankId;
+                delete updatedTx.targetBankName;
+            }
+
+            appState.transactions[idx] = updatedTx;
+
+            saveState();
+            closeModal('editTxModal');
+            showToast(newBankLinked ? '帳務已更新，銀行餘額已同步重新計算' : '歷史補登帳務內容已更新 (不影響帳戶餘額)', 'check-circle', 'text-brand-bank');
         };
 
         const openTradeModal = (symbol = '', name = '', price = '') => {
