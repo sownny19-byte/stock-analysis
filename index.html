@@ -77,9 +77,13 @@
                 <p class="flex items-center gap-2">
                     <i data-lucide="clock" class="h-4 w-4"></i> <span id="currentTimeDisplay">系統啟動中...</span>
                 </p>
-                <button onclick="syncPricesWithAI()" id="syncBtn" class="flex items-center gap-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-brand-accent px-3 py-1.5 rounded-md transition-colors border border-gray-700 shadow-sm">
-                    <i id="syncIcon" data-lucide="search" class="h-3.5 w-3.5"></i> Google 報價同步
+                <button onclick="syncPricesWithAI(false)" id="syncBtn" class="flex items-center gap-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-brand-accent px-3 py-1.5 rounded-md transition-colors border border-gray-700 shadow-sm">
+                    <i id="syncIcon" data-lucide="refresh-cw" class="h-3.5 w-3.5"></i> FinMind 手動更新股價
                 </button>
+                <span class="text-xs bg-gray-900/90 border border-gray-700 text-gray-300 px-2.5 py-1 rounded-md flex items-center gap-1.5 font-mono" title="FinMind API 每小時使用量 / 上限">
+                    <i data-lucide="activity" class="h-3.5 w-3.5 text-brand-accent"></i>
+                    API 額度: <span id="headerFinMindQuota" class="text-brand-accent font-bold">-- / 600</span> 次/時
+                </span>
             </div>
         </div>
         
@@ -216,6 +220,43 @@
                             <i data-lucide="plus" class="h-3.5 w-3.5"></i> 新增警戒
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- FinMind 盤後自動更新與 API 額度監控面板 -->
+            <div class="glass-panel px-4 py-3 rounded-xl border border-brand-accent/30 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-3 text-xs">
+                    <span class="bg-brand-accent/20 text-brand-accent border border-brand-accent/40 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
+                        <i data-lucide="database" class="w-3.5 h-3.5"></i> FinMind 股市追蹤引擎
+                    </span>
+                    <label class="flex items-center gap-2 cursor-pointer select-none bg-gray-900/70 px-3 py-1.5 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
+                        <input type="checkbox" id="autoPostMarketToggle" onchange="toggleAutoPostMarketSync(this.checked)" class="rounded bg-gray-800 border-gray-600 text-brand-accent focus:ring-0 accent-[#3b82f6] w-3.5 h-3.5" checked>
+                        <span class="text-gray-200 font-medium">預設盤後自動更新當日股價 (13:35 後)</span>
+                    </label>
+                    <span class="text-gray-400 flex items-center gap-1">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-brand-bank"></i>
+                        最新報價基準: <span id="finmindLastSyncText" class="text-gray-200 font-mono">尚未同步</span>
+                    </span>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+                    <div class="flex items-center gap-2.5 bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-700">
+                        <div class="text-xs">
+                            <span class="text-gray-400">API 每小時使用上限:</span>
+                            <span id="stockFinMindQuotaText" class="font-mono font-bold text-brand-accent ml-1">-- / 600</span>
+                            <span class="text-[10px] text-gray-500 ml-0.5">次/時</span>
+                        </div>
+                        <div class="w-20 h-2 bg-gray-800 rounded-full overflow-hidden border border-gray-700">
+                            <div id="stockFinMindQuotaBar" class="h-full bg-brand-accent transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <button onclick="fetchFinMindQuota(true)" class="text-gray-400 hover:text-white p-0.5 transition-colors" title="重新整理 API 額度">
+                            <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+
+                    <button onclick="syncPricesWithAI(false)" id="stockTabSyncBtn" class="flex items-center justify-center gap-1.5 text-xs bg-brand-accent hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg transition-colors font-bold">
+                        <i id="stockTabSyncIcon" data-lucide="refresh-cw" class="h-3.5 w-3.5"></i> 手動更新股價
+                    </button>
                 </div>
             </div>
             
@@ -601,7 +642,7 @@
                 <div class="flex gap-2">
                     <input type="text" id="sModalId" placeholder="代號 (例: 2330)" class="flex-1 bg-gray-800 p-2.5 rounded-lg text-white border border-gray-600 outline-none">
                     <button onclick="fetchStockInfo()" class="bg-brand-accent/20 text-brand-accent hover:bg-brand-accent/30 px-3 rounded-lg text-xs font-bold border border-brand-accent/30 flex items-center gap-1">
-                        <i data-lucide="bot" class="w-3 h-3"></i> AI 抓價
+                        <i data-lucide="database" class="w-3 h-3"></i> FinMind 抓價
                     </button>
                 </div>
                 <div class="flex gap-2">
@@ -723,6 +764,11 @@
             measurementId: "G-B9MGB90GES"
         };
         const geminiApiKey = ""; 
+        const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoic293bm55MTlAZ21haWwuY29tIiwiZW1haWwiOiJzb3dubnkxOUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ._n3lMU0hrCDOAFWXbEgQqGjZWKJWmM-Ot-uEhWOncTo";
+        let finmindQuota = { used: 0, limit: 600 };
+        let finmindStockInfoCache = null;
+        let finmindKLineCache = {};
+        let isSyncingFinMind = false;
         let db = null;
         let useFirebase = false;
 
@@ -761,6 +807,9 @@
             stockHistory: [],
             manualMonthlyPL: 0,
             manualYearlyPL: 0,
+            autoPostMarketSync: true,
+            lastFinMindSyncDate: "",
+            lastFinMindSyncTime: "",
             banks: [
                 { id: "b1", name: "台新 Richart", balance: 125000 },
                 { id: "b2", name: "永豐 DAWHO", balance: 48000 }
@@ -798,6 +847,9 @@
                         if(appState.stockCash === undefined) appState.stockCash = defaultState.stockCash;
                         if(appState.manualMonthlyPL === undefined) appState.manualMonthlyPL = 0;
                         if(appState.manualYearlyPL === undefined) appState.manualYearlyPL = 0;
+                        if(appState.autoPostMarketSync === undefined) appState.autoPostMarketSync = true;
+                        if(!appState.lastFinMindSyncDate) appState.lastFinMindSyncDate = "";
+                        if(!appState.lastFinMindSyncTime) appState.lastFinMindSyncTime = "";
                         if(!appState.stockHistory) appState.stockHistory = [];
                         if(!appState.banks) appState.banks = defaultState.banks;
                         if(!appState.funds) appState.funds = defaultState.funds;
@@ -825,6 +877,9 @@
             if(appState.stockCash === undefined) appState.stockCash = 9300;
             if(appState.manualMonthlyPL === undefined) appState.manualMonthlyPL = 0;
             if(appState.manualYearlyPL === undefined) appState.manualYearlyPL = 0;
+            if(appState.autoPostMarketSync === undefined) appState.autoPostMarketSync = true;
+            if(!appState.lastFinMindSyncDate) appState.lastFinMindSyncDate = "";
+            if(!appState.lastFinMindSyncTime) appState.lastFinMindSyncTime = "";
             if(!appState.inventory) appState.inventory = defaultState.inventory;
             if(!appState.watchlist) appState.watchlist = defaultState.watchlist;
         } catch(e) {
@@ -858,6 +913,8 @@
             setTimeout(() => {
                 initDonutChart();
                 renderAll();
+                fetchFinMindQuota(false);
+                checkPostMarketAutoSync();
             }, 100);
             
             const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`;
@@ -870,6 +927,11 @@
                     document.getElementById('currentTimeDisplay').innerText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} (連線中)`;
                 }
             }, 1000);
+
+            // 每 3 分鐘檢查一次是否已達盤後自動更新時間
+            setInterval(() => {
+                checkPostMarketAutoSync();
+            }, 180000);
         };
 
         window.onload = () => {
@@ -1071,6 +1133,15 @@
                 elYearlyPL.innerText = `${yPL >= 0 ? '+' : ''}$${yPL.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
                 elYearlyPL.className = `text-sm font-bold font-mono ${yPL >= 0 ? 'text-[#ef4444]' : 'text-[#10b981]'}`;
             }
+
+            const autoToggleEl = document.getElementById('autoPostMarketToggle');
+            if (autoToggleEl) autoToggleEl.checked = appState.autoPostMarketSync !== false;
+
+            const lastSyncEl = document.getElementById('finmindLastSyncText');
+            if (lastSyncEl) {
+                lastSyncEl.innerText = appState.lastFinMindSyncTime || '尚未同步';
+            }
+            renderFinMindQuotaUI();
             
             tbody.innerHTML = appState.inventory.map((item, idx) => {
                 const profit = (item.price - item.cost) * item.shares;
@@ -2243,7 +2314,7 @@
             return { candle: candleData, line: lineData };
         };
 
-        const updateChartData = () => {
+        const updateChartData = async () => {
             if(!chart || !candleSeries) return;
             let targetPrice = taiexCurrentValue;
             let meta = stocksMeta["0000"] || {vol: 0.008, trend: 0.01};
@@ -2256,7 +2327,27 @@
                 }
             }
 
-            const data = generateKLineData(targetPrice, meta.vol, currentTimeframe);
+            let data = null;
+            // 優先使用 FinMind 歷史日 K 資料繪製走勢
+            if (['1W', '1M', '6M', '1Y'].includes(currentTimeframe)) {
+                const fmSeries = await fetchFinMindHistoryForChart(currentStock);
+                if (fmSeries && fmSeries.candle.length > 0) {
+                    let sliceCount = fmSeries.candle.length;
+                    if (currentTimeframe === '1W') sliceCount = 7;
+                    else if (currentTimeframe === '1M') sliceCount = 22;
+                    else if (currentTimeframe === '6M') sliceCount = 130;
+                    else if (currentTimeframe === '1Y') sliceCount = 250;
+                    data = {
+                        candle: fmSeries.candle.slice(-sliceCount),
+                        line: fmSeries.line.slice(-sliceCount)
+                    };
+                }
+            }
+
+            if (!data) {
+                data = generateKLineData(targetPrice, meta.vol, currentTimeframe);
+            }
+
             candleSeries.setData(data.candle);
             lineSeries.setData(data.line);
             
@@ -2279,6 +2370,13 @@
             
             chart.timeScale().fitContent();
             if(document.getElementById('statPrice')) document.getElementById('statPrice').innerText = targetPrice.toFixed(2);
+        };
+
+        const selectStock = (stockId) => {
+            currentStock = stockId;
+            const selEl = document.getElementById('stockSelector');
+            if (selEl) selEl.value = stockId;
+            updateChartData();
         };
 
         const selEl = document.getElementById('stockSelector');
@@ -2340,98 +2438,297 @@
             }
         };
 
-        const searchStockWithGemini = async (query, schemaProperties) => {
-            if (!geminiApiKey) return null; 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: query }] }],
-                systemInstruction: { parts: [{ text: "You are a professional financial data assistant. You MUST use the google_search tool to find the absolute most recent and accurate Taiwan stock market prices. Respond strictly in JSON format as requested." }] },
-                tools: [{ google_search: {} }],
-                generationConfig: { responseMimeType: "application/json", responseSchema: schemaProperties }
-            };
+        // 紀錄本機端每小時呼叫次數作為即時回饋與備援
+        const bumpLocalFinMindUsage = (count = 1) => {
+            const hourKey = new Date().toISOString().slice(0, 13);
+            let savedQuota = { hourKey, used: 0, limit: 600 };
+            try {
+                const raw = localStorage.getItem('finmindHourlyQuota');
+                if (raw) savedQuota = JSON.parse(raw);
+            } catch(e) {}
+            if (savedQuota.hourKey !== hourKey) {
+                savedQuota = { hourKey, used: 0, limit: finmindQuota.limit || 600 };
+            }
+            savedQuota.used += count;
+            finmindQuota.used = Math.max(finmindQuota.used + count, savedQuota.used);
+            localStorage.setItem('finmindHourlyQuota', JSON.stringify(savedQuota));
+            renderFinMindQuotaUI();
+        };
+
+        const renderFinMindQuotaUI = () => {
+            const used = finmindQuota.used ?? 0;
+            const limit = finmindQuota.limit || 600;
+            const pct = Math.min(100, Math.round((used / limit) * 100));
+
+            safeSetText('headerFinMindQuota', `${used} / ${limit}`);
+            safeSetText('stockFinMindQuotaText', `${used} / ${limit}`);
+
+            const bar = document.getElementById('stockFinMindQuotaBar');
+            if (bar) {
+                bar.style.width = `${pct}%`;
+                bar.className = `h-full transition-all duration-300 ${pct > 85 ? 'bg-[#ef4444]' : pct > 60 ? 'bg-brand-warning' : 'bg-brand-accent'}`;
+            }
+        };
+
+        // 查詢 FinMind API 官方帳號每小時使用上限與已用次數
+        const fetchFinMindQuota = async (showNotice = false) => {
+            try {
+                const hourKey = new Date().toISOString().slice(0, 13);
+                const raw = localStorage.getItem('finmindHourlyQuota');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed.hourKey === hourKey) {
+                        finmindQuota.used = parsed.used || 0;
+                        finmindQuota.limit = parsed.limit || 600;
+                    }
+                }
+            } catch(e) {}
 
             try {
-                const result = await fetchWithRetry(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) return JSON.parse(text);
-                return null;
+                const url = `https://api.web.finmindtrade.com/v2/user_info?token=${encodeURIComponent(FINMIND_TOKEN)}`;
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.api_request_limit !== undefined) {
+                        finmindQuota.used = data.user_count ?? finmindQuota.used;
+                        finmindQuota.limit = data.api_request_limit || 600;
+                        const hourKey = new Date().toISOString().slice(0, 13);
+                        localStorage.setItem('finmindHourlyQuota', JSON.stringify({
+                            hourKey,
+                            used: finmindQuota.used,
+                            limit: finmindQuota.limit
+                        }));
+                        renderFinMindQuotaUI();
+                        if (showNotice) {
+                            showToast(`FinMind API 額度：已用 ${finmindQuota.used} / ${finmindQuota.limit} 次 (每小時上限)`, 'activity');
+                        }
+                        return finmindQuota;
+                    }
+                }
             } catch (e) {
-                console.error("API 連線失敗", e);
-                return null;
+                console.warn("查詢 FinMind user_info 使用本機計數器:", e);
+            }
+            renderFinMindQuotaUI();
+            if (showNotice) {
+                showToast(`FinMind API 額度：已用 ${finmindQuota.used} / ${finmindQuota.limit} 次 (每小時上限)`, 'activity');
+            }
+            return finmindQuota;
+        };
+
+        const getPastDateStr = (daysAgo = 14) => {
+            const d = new Date();
+            d.setDate(d.getDate() - daysAgo);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+
+        // 透過 FinMind TaiwanStockPrice 取得單一標的最近收盤價
+        const fetchFinMindLatestPrice = async (stockId) => {
+            const queryId = stockId === '0000' ? 'TAIEX' : stockId;
+            const startDate = getPastDateStr(15);
+            const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${encodeURIComponent(queryId)}&start_date=${startDate}&token=${encodeURIComponent(FINMIND_TOKEN)}`;
+            bumpLocalFinMindUsage(1);
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`FinMind HTTP ${res.status}`);
+            const json = await res.json();
+            if (json && Array.isArray(json.data) && json.data.length > 0) {
+                const latest = json.data[json.data.length - 1];
+                return {
+                    id: stockId,
+                    price: parseFloat(latest.close),
+                    date: latest.date,
+                    open: parseFloat(latest.open),
+                    high: parseFloat(latest.max),
+                    low: parseFloat(latest.min),
+                    spread: parseFloat(latest.spread || 0)
+                };
+            }
+            return null;
+        };
+
+        // 透過 FinMind 取得 K 線歷史資料供圖表顯示
+        const fetchFinMindHistoryForChart = async (stockId) => {
+            const queryId = stockId === '0000' ? 'TAIEX' : stockId;
+            if (finmindKLineCache[queryId]) return finmindKLineCache[queryId];
+            try {
+                const startDate = getPastDateStr(370);
+                const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${encodeURIComponent(queryId)}&start_date=${startDate}&token=${encodeURIComponent(FINMIND_TOKEN)}`;
+                bumpLocalFinMindUsage(1);
+                const res = await fetch(url);
+                if (!res.ok) return null;
+                const json = await res.json();
+                if (json && Array.isArray(json.data) && json.data.length > 0) {
+                    const candle = [];
+                    const line = [];
+                    json.data.forEach(row => {
+                        const c = parseFloat(row.close);
+                        if (!isNaN(c) && c > 0) {
+                            candle.push({
+                                time: row.date,
+                                open: parseFloat(row.open) || c,
+                                high: parseFloat(row.max) || c,
+                                low: parseFloat(row.min) || c,
+                                close: c
+                            });
+                            line.push({
+                                time: row.date,
+                                value: c
+                            });
+                        }
+                    });
+                    if (candle.length > 0) {
+                        finmindKLineCache[queryId] = { candle, line };
+                        fetchFinMindQuota(false);
+                        return finmindKLineCache[queryId];
+                    }
+                }
+            } catch (e) {
+                console.warn("FinMind K線資料載入失敗，改用備援走勢:", e);
+            }
+            return null;
+        };
+
+        // 切換盤後自動更新設定
+        const toggleAutoPostMarketSync = (enabled) => {
+            appState.autoPostMarketSync = enabled;
+            saveState();
+            showToast(enabled ? '已開啟「盤後自動更新當日股價」' : '已關閉盤後自動更新，可隨時手動更新', 'clock');
+            if (enabled) checkPostMarketAutoSync();
+        };
+
+        // 檢查是否到達台股盤後時間 (13:35 後) 並自動更新當日股價
+        const checkPostMarketAutoSync = () => {
+            if (appState.autoPostMarketSync === false || isSyncingFinMind) return;
+            const now = new Date();
+            const day = now.getDay(); // 0=週日, 6=週六
+            const todayStr = getTodayDateString();
+            const isAfterMarketClose = (now.getHours() > 13) || (now.getHours() === 13 && now.getMinutes() >= 35);
+
+            // 若從未同步過，或今日為交易日且已過 13:35 盤後時間但尚未更新今日股價
+            const neverSynced = !appState.lastFinMindSyncDate;
+            const shouldSyncTodayPostMarket = (day >= 1 && day <= 5) && isAfterMarketClose && (appState.lastFinMindSyncDate !== todayStr);
+
+            if (neverSynced || shouldSyncTodayPostMarket) {
+                syncPricesWithAI(true);
             }
         };
 
         const fetchStockInfo = async () => {
-            const id = document.getElementById('sModalId').value.trim();
-            if(!id) return showToast('請輸入代號', 'alert-triangle', 'text-brand-warning');
+            const id = document.getElementById('sModalId').value.trim().toUpperCase();
+            if(!id) return showToast('請輸入股票代號', 'alert-triangle', 'text-brand-warning');
             
-            showToast(`🚀 正在呼叫 API 搜尋 ${id} 最新真實報價...`, 'search');
+            showToast(`🚀 正在透過 FinMind 查詢 ${id} 名稱與最新收盤價...`, 'database');
             
-            if (!geminiApiKey) {
-                await new Promise(r => setTimeout(r, 1000));
-                document.getElementById('sModalPrice').value = "175.50";
-                document.getElementById('sModalName').value = "鴻海(模擬)";
-                return showToast('✅ API 暫未啟動，使用模擬擷取');
-            }
+            try {
+                // 1. 查詢股票中文名稱 (TaiwanStockInfo)
+                let stockName = "";
+                const infoUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo&data_id=${encodeURIComponent(id)}&token=${encodeURIComponent(FINMIND_TOKEN)}`;
+                bumpLocalFinMindUsage(1);
+                const infoRes = await fetch(infoUrl);
+                if (infoRes.ok) {
+                    const infoJson = await infoRes.json();
+                    if (infoJson && Array.isArray(infoJson.data) && infoJson.data.length > 0) {
+                        stockName = infoJson.data[0].stock_name || "";
+                    }
+                }
 
-            const query = `請利用 Google 搜尋台灣股市代號或名稱為 "${id}" 的最新「真實現價」或「收盤價」，以及其完整的股票名稱。`;
-            const schema = { type: "OBJECT", properties: { name: { type: "STRING" }, price: { type: "NUMBER" } } };
+                // 2. 查詢最新收盤價 (TaiwanStockPrice)
+                const priceData = await fetchFinMindLatestPrice(id);
+                await fetchFinMindQuota(false);
 
-            const result = await searchStockWithGemini(query, schema);
-            if (result && result.name && result.price) {
-                document.getElementById('sModalPrice').value = result.price;
-                document.getElementById('sModalName').value = result.name;
-                showToast(`✅ 解析成功！已擷取 ${result.name} 真實價位 $${result.price}`);
-            } else {
-                showToast('搜尋逾時，請確認代號或手動輸入', 'alert-triangle', 'text-brand-warning');
+                if (priceData && !isNaN(priceData.price)) {
+                    document.getElementById('sModalPrice').value = priceData.price;
+                    if (stockName) document.getElementById('sModalName').value = stockName;
+                    showToast(`✅ FinMind 抓價成功！${stockName || id} 最新收盤價 $${priceData.price} (${priceData.date})`);
+                } else {
+                    if (stockName) document.getElementById('sModalName').value = stockName;
+                    showToast('查無近期股價資料，請確認代號或手動輸入', 'alert-triangle', 'text-brand-warning');
+                }
+            } catch (e) {
+                console.error("FinMind 抓價異常:", e);
+                showToast('FinMind 連線異常，請稍後再試或手動輸入', 'alert-triangle', 'text-brand-warning');
             }
         };
 
-        const syncPricesWithAI = async () => {
+        const syncPricesWithAI = async (isAuto = false) => {
+            if (isSyncingFinMind) return;
+            isSyncingFinMind = true;
+
             const btn = document.getElementById('syncBtn');
             const icon = document.getElementById('syncIcon');
+            const stockBtn = document.getElementById('stockTabSyncBtn');
+            const stockIcon = document.getElementById('stockTabSyncIcon');
+
             if(btn) btn.disabled = true; 
             if(icon) icon.classList.add('animate-spin');
-            showToast('啟動 Google 聯網比對真實報價...', 'search');
-            
-            if (!geminiApiKey) {
-                await new Promise(r => setTimeout(r, 1500));
-                appState.inventory.forEach(i => i.price = parseFloat((i.price * (1 + (Math.random()*0.02 - 0.01))).toFixed(2)));
-                appState.watchlist.forEach(i => i.price = parseFloat((i.price * (1 + (Math.random()*0.02 - 0.01))).toFixed(2)));
-                taiexCurrentValue = taiexCurrentValue * (1 + (Math.random()*0.01 - 0.005));
-                saveState(); if(isChartInitialized) updateChartData();
+            if(stockBtn) stockBtn.disabled = true;
+            if(stockIcon) stockIcon.classList.add('animate-spin');
+
+            showToast(isAuto ? '⏰ 啟動 FinMind 盤後自動更新當日股價...' : '🚀 啟動 FinMind 同步各檔最新股價...', 'refresh-cw');
+
+            try {
+                const allTargets = [...new Set(['0000', ...appState.inventory.map(i => i.id), ...appState.watchlist.map(i => i.id)])];
+                let updatedCount = 0;
+                let latestDataDate = "";
+
+                const results = await Promise.allSettled(
+                    allTargets.map(symbol => fetchFinMindLatestPrice(symbol))
+                );
+
+                results.forEach(res => {
+                    if (res.status === 'fulfilled' && res.value && !isNaN(res.value.price)) {
+                        const { id, price, date } = res.value;
+                        if (date && date > latestDataDate) latestDataDate = date;
+
+                        if (id === '0000') {
+                            taiexCurrentValue = price;
+                            if (stocksMeta["0000"]) stocksMeta["0000"].price = price;
+                        } else {
+                            appState.inventory.forEach(item => {
+                                if (item.id === id) {
+                                    item.price = price;
+                                    updatedCount++;
+                                }
+                            });
+                            appState.watchlist.forEach(item => {
+                                if (item.id === id) {
+                                    item.price = price;
+                                    updatedCount++;
+                                }
+                            });
+                        }
+                    }
+                });
+
+                // 清除舊 K 線快取以確保圖表同步最新收盤價
+                finmindKLineCache = {};
+
+                const now = new Date();
+                const todayStr = getTodayDateString();
+                const timeStamp = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+                appState.lastFinMindSyncDate = todayStr;
+                appState.lastFinMindSyncTime = `${timeStamp}${latestDataDate ? ` (資料日: ${latestDataDate})` : ''}`;
+
+                await fetchFinMindQuota(false);
+                saveState();
+                if (isChartInitialized) updateChartData();
+
+                showToast(
+                    isAuto
+                        ? `✅ FinMind 盤後自動更新完成！已同步 ${updatedCount} 檔標的 (${latestDataDate || '最新'})`
+                        : `✅ FinMind 手動更新完成！已同步 ${updatedCount} 檔標的 (API 額度: ${finmindQuota.used}/${finmindQuota.limit})`,
+                    'check-circle'
+                );
+            } catch (error) {
+                console.error("FinMind 同步失敗:", error);
+                showToast('FinMind 報價同步發生異常，請稍後再試', 'alert-triangle', 'text-brand-warning');
+            } finally {
+                isSyncingFinMind = false;
                 if(btn) btn.disabled = false; 
                 if(icon) icon.classList.remove('animate-spin');
-                return showToast('✅ 模擬同步完成，淨資產已重新結算', 'cloud-lightning');
+                if(stockBtn) stockBtn.disabled = false;
+                if(stockIcon) stockIcon.classList.remove('animate-spin');
+                try { lucide.createIcons(); } catch(e) {}
             }
-
-            const allTargets = [...new Set([...appState.inventory.map(i=>i.id), ...appState.watchlist.map(i=>i.id)])];
-            const query = `請使用 Google 搜尋以下台灣股票代號的最新「真實收盤價」或「即時現價」：\n${allTargets.join(', ')} \n請務必加上「台灣大盤加權指數 (TAIEX)」，將其代號標為 '0000'，並填入最新點數。`;
-            const schema = { type: "ARRAY", items: { type: "OBJECT", properties: { id: { type: "STRING" }, price: { type: "NUMBER" } } } };
-            
-            const results = await searchStockWithGemini(query, schema);
-
-            if (results && Array.isArray(results)) {
-                results.forEach(res => {
-                    if (res.id === '0000') taiexCurrentValue = res.price;
-                    const invItem = appState.inventory.find(i => i.id === res.id);
-                    const wlItem = appState.watchlist.find(i => i.id === res.id);
-                    if (invItem) invItem.price = res.price;
-                    if (wlItem) wlItem.price = res.price;
-                });
-                stocksMeta["0000"].price = taiexCurrentValue;
-                showToast('✅ 聯網任務完成，各標的真實報價已精準同步', 'cloud-lightning');
-            } else {
-                showToast('API 聯網發生異常，請稍後再試', 'alert-triangle', 'text-brand-warning');
-            }
-            
-            saveState(); if(isChartInitialized) updateChartData();
-            if(btn) btn.disabled = false; 
-            if(icon) icon.classList.remove('animate-spin');
         };
     </script>
 </body>
